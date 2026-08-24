@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Computer Architecture · Monsoon 2026 · IIIT Hyderabad</title>
+    <meta name="description"
+        content="Advanced Computer Architecture — Monsoon 2026, IIIT Hyderabad. From the end of Dennard scaling to out-of-order cores, GPUs and NPUs, taught alongside a real RISC-V CPU written in Bluespec. Instructors: Priyesh Shukla and Suresh Purini.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=1">
+</head>
+
+<body>
+    <header class="nav-bar">
+        <div class="container nav-inner">
+            <a href="#top" class="brand">ACA · Monsoon 2026</a>
+            <nav>
+                <ul>
+                    <li><a href="#overview">Overview</a></li>
+                    <li><a href="#schedule">Schedule</a></li>
+                    <li><a href="#resources">Resources</a></li>
+                    <li><a href="#logistics">Logistics</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero -->
+    <section id="top" class="hero">
+        <div class="hero-glow" aria-hidden="true"></div>
+        <div class="container hero-inner">
+            <p class="eyebrow">IIIT Hyderabad · Monsoon 2026</p>
+            <h1>Advanced Computer Architecture</h1>
+            <p class="hero-role">From the end of easy scaling to the machines that replaced it</p>
+            <p class="hero-tagline">
+                Frequency scaling ended two decades ago; everything since — out-of-order execution,
+                deep memory hierarchies, multicore, GPUs, NPUs — is a response to that. We follow
+                that story, and we read a real RISC-V CPU written in Bluespec while we do it.
+            </p>
+            <p class="hero-meta">Instructors:
+                <a href="https://www.iiit.ac.in/faculty/priyesh-shukla/" target="_blank" rel="noopener">Priyesh
+                    Shukla</a> ·
+                <a href="https://sureshpurini.github.io/" target="_blank" rel="noopener">Suresh Purini</a>
+            </p>
+        </div>
+    </section>
+
+    <main class="container">
+        <!-- Overview -->
+        <section id="overview" class="section reveal">
+            <span class="section-tag">01 — Overview</span>
+            <h2>About the Course</h2>
+            <p class="lead">
+                A graduate course on how modern processors actually get their performance — and on
+                why each mechanism exists, which is always because some easier source of speed ran
+                out.
+            </p>
+            <p>
+                The course opens with the walls: Dennard scaling, power, memory, and ILP. It then
+                works through instruction-level parallelism (pipelining, dynamic scheduling,
+                speculation, VLIW), the memory hierarchy and the side channels it leaks through,
+                cache coherence and memory consistency, and finally the accelerators that dominate
+                today's silicon — GPUs and NPUs — closing with recent ISCA/MICRO work.
+            </p>
+            <p>
+                Running through the early part of the course is a second thread: <strong>we read
+                    hardware, not just diagrams.</strong> Three lectures build up Bluespec
+                SystemVerilog and then walk two real RISC-V implementations — <em>Drum</em>
+                (unpipelined) and <em>Fife</em> (pipelined) — from Nikhil's
+                <em>Learn Bluespec and RISC-V Design</em>. Every structure the later ILP lectures
+                describe on a whiteboard has a counterpart you can compile and run.
+            </p>
+            <div class="meta-row">
+                <span class="chip"><strong>Term</strong> · Monsoon 2026</span>
+                <span class="chip"><strong>Instructors</strong> · Priyesh Shukla · Suresh Purini</span>
+                <span class="chip"><strong>Prerequisites</strong> · Computer Organization, C</span>
+                <span class="chip"><strong>Lectures</strong> · 26 (tentative)</span>
+            </div>
+        </section>
+
+        <!-- Schedule -->
+        <section id="schedule" class="section reveal">
+            <span class="section-tag">02 — Schedule</span>
+            <h2>Lecture Plan</h2>
+            <p>
+                A tentative arc, grouped by module. Slide decks are linked as they are released;
+                readings and recordings for enrolled students are posted on Moodle.
+            </p>
+
+            <span class="block-label">Foundations <span class="by">· Priyesh Shukla</span></span>
+            <div class="table-wrap">
+                <table class="schedule">
+                    <thead>
+                        <tr><th>#</th><th>Topic</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="lnum">L1</td>
+                            <td class="ltopic">The End of Easy Scaling: From Moore's Law to the Parallelism Era
+                                <span class="lblock">Dennard scaling · the power, memory and ILP walls · dark silicon · why specialization won</span>
+                                <a class="slide-link" href="https://www.youtube.com/watch?v=tawb_aeYQ2g&amp;list=PLAwxTw4SYaPmqpjgrmf4-DGlaeV0om4iP&amp;index=1" target="_blank" rel="noopener">Videos → HPCA Lesson 1</a>
+                                <span class="pending">Slides — pending release</span></td>
+                        </tr>
+                        <tr>
+                            <td class="lnum">L2</td>
+                            <td class="ltopic">Measuring Compute: Benchmarking, Power, and Why Numbers Lie
+                                <span class="lblock">peak vs sustained · roofline · SPEC CPU2017 · geometric mean · TDP vs measured power · measurement bias</span>
+                                <a class="slide-link" href="https://www.youtube.com/watch?v=q9yDL81QppI&amp;list=PLAwxTw4SYaPmqpjgrmf4-DGlaeV0om4iP&amp;index=25" target="_blank" rel="noopener">Videos → HPCA Lesson 2</a>
+                                <span class="pending">Slides — pending release</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <span class="block-label">Designing Hardware: Bluespec &amp; RISC-V <span class="by">· Suresh Purini</span></span>
+            <div class="callout">
+                <strong>The one idea:</strong> Drum and Fife have <em>identical</em> instruction
+                semantics and are wired up differently. Each stage is a pure function; the
+                unpipelined machine calls them in sequence, the pipelined one calls the same
+                functions from concurrent rules separated by FIFOs. Pipelining, scoreboarding,
+                Tomasulo and the reorder buffer are then <em>re-wirings</em> of one datapath —
+                not rewrites.
+            </div>
+            <div class="table-wrap">
+                <table class="schedule">
+                    <thead>
+                        <tr><th>#</th><th>Topic</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="lnum">L3</td>
+                            <td class="ltopic">Digital Circuits, BSV &amp; Pipelining
+                                <span class="lblock">flip-flop → registers → guarded atomic rules · GCD and the ripple-carry adder · static elaboration · inelastic vs elastic pipelines · polymorphism and higher-order stages</span>
+                                <a class="slide-link" href="slides/L3.html" target="_blank" rel="noopener">Slides →</a></td>
+                        </tr>
+                        <tr>
+                            <td class="lnum">L4</td>
+                            <td class="ltopic">From Control to a Tiny Processor
+                                <span class="lblock">one datapath, three controllers (rules · StmtFSM · pipeline) · TinyDrum (folded) vs TinyFife (pipelined) · the first hazard</span>
+                                <a class="slide-link" href="slides/L4.html" target="_blank" rel="noopener">Slides →</a></td>
+                        </tr>
+                        <tr>
+                            <td class="lnum">L5</td>
+                            <td class="ltopic">The Drum RISC-V CPU
+                                <span class="lblock">reading a real RV32I implementation line by line · fetch/decode/execute as pure functions · the control loop · build and run it</span>
+                                <a class="slide-link" href="slides/L5.html" target="_blank" rel="noopener">Slides →</a>
+                                <a class="slide-link" href="https://sureshpurini.github.io/drum-fife-walkthrough" target="_blank" rel="noopener">Code walkthrough →</a></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <span class="block-label">Instruction-Level Parallelism</span>
+            <div class="table-wrap">
+                <table class="schedule">
+                    <thead>
+                        <tr><th>#</th><th>Topic</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="lnum">L6</td>
+                            <td class="ltopic">The 5-Stage Pipeline &amp; Hazards
+                                <span class="lblock">IF/ID/EX/MEM/WB · structural, data and control hazards · forwarding · branch delay slots · pipeline CPI</span>
+                                <a class="slide-link" href="https://www.youtube.com/watch?v=hBBVgqE6KXU&amp;list=PLAwxTw4SYaPmqpjgrmf4-DGlaeV0om4iP&amp;index=59" target="_blank" rel="noopener">Videos → rest of HPCA Part 1</a>
+                                <a class="slide-link" href="https://aca-iiith.vlabs.ac.in/exp/data-hazards-instruction-scheduling/" target="_blank" rel="noopener">Lab 1 → Data hazards</a>
+                                <a class="slide-link" href="https://aca-iiith.vlabs.ac.in/exp/branch-prediction-one-two-bit/" target="_blank" rel="noopener">Lab 6 → Branch prediction (1- &amp; 2-bit)</a>
+                                <a class="slide-link" href="https://aca-iiith.vlabs.ac.in/exp/branch-prediction-correlating/" target="_blank" rel="noopener">Lab 7 → Correlating predictors</a></td>
+                        </tr>
+                        <tr>
+                            <td class="lnum">L7</td>
+                            <td class="ltopic">Scoreboarding
+                                <span class="lblock">superscalar / multiple issue · why dynamic scheduling · the CDC 6600 scoreboard · WAR and WAW</span></td>
+                        </tr>
+                        <tr>
+                            <td class="lnum">L8</td>
+                            <td class="ltopic">Tomasulo's Algorithm
+                                <span class="lblock">register renaming · reservation stations · the common data bus</span></td>
+                        </tr>
+                        <tr>
+                            <td class="lnum">L9</td>
+                            <td class="ltopic">Reorder Buffers &amp; Speculation
+                                <span class="lblock">hardware speculation · ROB structure · in-order commit · precise exceptions</span></td>
+                        </tr>
+                        <tr>
+                            <td class="lnum">L10</td>
+                            <td class="ltopic">Branch Prediction Strategies
+                                <span class="lblock">static vs dynamic · BHT and BTB · 2-bit, correlating and tournament predictors · return address stack</span></td>
+                        </tr>
+                        <tr>
+                            <td class="lnum">L11</td>
+                            <td class="ltopic">VLIW &amp; Software Pipelining
+                                <span class="lblock">compiler-exposed parallelism · bundles · VLIW vs superscalar · prologue/steady-state/epilogue · predication</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <span class="block-label">Memory Hierarchy &amp; Security</span>
+            <div class="table-wrap">
+                <table class="schedule">
+                    <thead>
+                        <tr><th>#</th><th>Topic</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="lnum">L12</td>
+                            <td class="ltopic">Basic Cache Memory Review
+                                <span class="lblock">locality · direct-mapped / set-associative / fully-associative · AMAT and the three C's · write policies</span></td>
+                        </tr>
+                        <tr>
+                            <td class="lnum">L13</td>
+                            <td class="ltopic">Side-Channel Attacks
+                                <span class="lblock">cache timing channels · Flush+Reload · Prime+Probe · Spectre and Meltdown · mitigations</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <span class="block-label">Thread-Level Parallelism</span>
+            <div class="table-wrap">
+                <table class="schedule">
+                    <thead>
+                        <tr><th>#</th><th>Topic</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="lnum">L14</td>
+                            <td class="ltopic">Cache Coherence I
+                                <span class="lblock">the coherence problem · snooping protocols · MSI and MESI</span></td>
+                        </tr>
+                        <tr>
+                            <td class="lnum">L15</td>
+                            <td class="ltopic">Cache Coherence II
+                                <span class="lblock">directory-based coherence · scalability · false sharing</span></td>
+                        </tr>
+                        <tr>
+                            <td class="lnum">L16</td>
+                            <td class="ltopic">Memory Consistency Models I
+                                <span class="lblock">coherence vs consistency · sequential consistency · program order and write atomicity</span></td>
+                        </tr>
+                        <tr>
+                            <td class="lnum">L17</td>
+                            <td class="ltopic">Memory Consistency Models II
+                                <span class="lblock">relaxed models (TSO, PSO, RC) · fences · the C++ and Java memory models</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <span class="block-label">Data-Level Parallelism &amp; Accelerators</span>
+            <div class="table-wrap">
+                <table class="schedule">
+                    <thead>
+                        <tr><th>#</th><th>Topic</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="lnum">L18</td>
+                            <td class="ltopic">GPU Design I
+                                <span class="lblock">GPU vs CPU design philosophy · the SIMT model · warps and wavefronts · streaming multiprocessors</span></td>
+                        </tr>
+                        <tr>
+                            <td class="lnum">L19</td>
+                            <td class="ltopic">GPU Design II
+                                <span class="lblock">the GPU memory hierarchy · threads/blocks/grids · occupancy and divergence</span></td>
+                        </tr>
+                        <tr>
+                            <td class="lnum">L20</td>
+                            <td class="ltopic">GPU Design III
+                                <span class="lblock">performance optimization · tensor cores and matrix units · case studies</span></td>
+                        </tr>
+                        <tr>
+                            <td class="lnum">L21</td>
+                            <td class="ltopic">NPU / TPU Design I
+                                <span class="lblock">why neural accelerators · systolic arrays · weight-, output- and row-stationary dataflows</span></td>
+                        </tr>
+                        <tr>
+                            <td class="lnum">L22</td>
+                            <td class="ltopic">NPU / TPU Design II
+                                <span class="lblock">mapping and scheduling DNN workloads · quantization and reduced precision · the TPU and others</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <span class="block-label">Performance Modeling</span>
+            <div class="table-wrap">
+                <table class="schedule">
+                    <thead>
+                        <tr><th>#</th><th>Topic</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="lnum">L23</td>
+                            <td class="ltopic">Hierarchical &amp; Energy Roofline Analysis
+                                <span class="lblock">roofline revisited · per-level hierarchical roofline · energy roofline · applying it to GPUs and NPUs</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <span class="block-label">Research &amp; State of the Art</span>
+            <div class="table-wrap">
+                <table class="schedule">
+                    <thead>
+                        <tr><th>#</th><th>Topic</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="lnum">L24+</td>
+                            <td class="ltopic">ISCA / MICRO paper deep-dives
+                                <span class="lblock">Reserved slots — recent architecture papers, read and discussed in class. Papers announced during the semester.</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <p class="footnote">
+                <em>The schedule is tentative and will be refined as the semester progresses.
+                    SIMT is covered as a pre-class video exercise ahead of L18 rather than as a
+                    standalone lecture.</em>
+            </p>
+        </section>
+
+        <!-- Resources -->
+        <section id="resources" class="section reveal">
+            <span class="section-tag">03 — Resources</span>
+            <h2>Books, Code &amp; Lectures</h2>
+
+            <h3>Primary sources</h3>
+            <ul class="reslist">
+                <li>
+                    <div class="rtitle">Learn Bluespec and RISC-V Design</div>
+                    <div class="rmeta">Rishiyur S. Nikhil · the book, the BSV source for the Drum and Fife
+                        CPUs, and the exercises. The spine of lectures 3–5 and the reference for the
+                        ILP lectures that follow.</div>
+                    <div class="links">
+                        <a href="https://github.com/rsnikhil/Learn_Bluespec_and_RISCV_Design" target="_blank"
+                            rel="noopener">GitHub</a>
+                    </div>
+                </li>
+                <li>
+                    <div class="rtitle">Drum &amp; Fife — interactive code walkthrough</div>
+                    <div class="rmeta">Browse the two CPUs by symbol and file, with guided tours through the
+                        fetch/decode/execute path. Use it alongside L5.</div>
+                    <div class="links">
+                        <a href="https://sureshpurini.github.io/drum-fife-walkthrough" target="_blank"
+                            rel="noopener">Open →</a>
+                    </div>
+                </li>
+                <li>
+                    <div class="rtitle">High Performance Computer Architecture: Part 1</div>
+                    <div class="rmeta">Milos Prvulovic (Georgia Tech, via Udacity) · short-video lecture
+                        series. Lessons 1 and 2 are the assigned pre-class viewing for L1 and L2; later
+                        lessons and the follow-on parts are a useful second pass on pipelining, dynamic
+                        scheduling, coherence and consistency.</div>
+                    <div class="links">
+                        <a href="https://youtube.com/playlist?list=PLAwxTw4SYaPmqpjgrmf4-DGlaeV0om4iP"
+                            target="_blank" rel="noopener">Playlist</a>
+                    </div>
+                </li>
+                <li>
+                    <div class="rtitle">ACA Virtual Labs (IIIT Hyderabad)</div>
+                    <div class="rmeta">Browser-based simulators for the ILP and coherence material — data
+                        hazards, scoreboarding, Tomasulo, reorder buffers, branch prediction, MSI/MESI/MOESI
+                        and directory coherence, and roofline analysis. Run them alongside the matching
+                        lecture.</div>
+                    <div class="links">
+                        <a href="https://aca-iiith.vlabs.ac.in/List%20of%20experiments.html" target="_blank"
+                            rel="noopener">Experiments →</a>
+                    </div>
+                </li>
+                <li>
+                    <div class="rtitle">Bluespec Compiler (<code>bsc</code>)</div>
+                    <div class="rmeta">Open-source BSV compiler and Bluesim simulator — what you need to build
+                        and run every example in lectures 3–5.</div>
+                    <div class="links">
+                        <a href="https://github.com/B-Lang-org/bsc" target="_blank" rel="noopener">GitHub</a>
+                    </div>
+                </li>
+                <li>
+                    <div class="rtitle">Computer Architecture: A Quantitative Approach</div>
+                    <div class="rmeta">Hennessy &amp; Patterson · the standard reference for the ILP, memory
+                        hierarchy and TLP modules.</div>
+                </li>
+            </ul>
+
+            <h3 style="margin-top:1.75rem;">Selected readings</h3>
+            <ul class="reslist">
+                <li>
+                    <div class="rtitle">Roofline: An Insightful Visual Performance Model for Multicore
+                        Architectures</div>
+                    <div class="rmeta">Williams, Waterman &amp; Patterson, CACM 2009 · assigned before L2</div>
+                    <div class="links">
+                        <a href="https://doi.org/10.1145/1498765.1498785" target="_blank" rel="noopener">DOI</a>
+                    </div>
+                </li>
+                <li>
+                    <div class="rtitle">How Not to Lie with Statistics: The Correct Way to Summarize
+                        Benchmark Results</div>
+                    <div class="rmeta">Fleming &amp; Wallace, CACM 1986 · the geometric-mean argument, and the
+                        primer for the L2 debate</div>
+                    <div class="links">
+                        <a href="https://doi.org/10.1145/5666.5673" target="_blank" rel="noopener">DOI</a>
+                    </div>
+                </li>
+                <li>
+                    <div class="rtitle">Producing Wrong Data Without Doing Anything Obviously Wrong!</div>
+                    <div class="rmeta">Mytkowicz et al., ASPLOS 2009 · measurement bias</div>
+                    <div class="links">
+                        <a href="https://doi.org/10.1145/1508244.1508275" target="_blank" rel="noopener">DOI</a>
+                    </div>
+                </li>
+                <li>
+                    <div class="rtitle">SPEC CPU2017: Next-Generation Compute Benchmark</div>
+                    <div class="rmeta">Bucek, Lange &amp; von Kistowski, ICPE 2018</div>
+                    <div class="links">
+                        <a href="https://doi.org/10.1145/3185768.3185771" target="_blank" rel="noopener">DOI</a>
+                    </div>
+                </li>
+                <li>
+                    <div class="rtitle">Amdahl's Law in the Multicore Era</div>
+                    <div class="rmeta">Hill &amp; Marty, IEEE Computer 2008</div>
+                    <div class="links">
+                        <a href="https://doi.org/10.1109/MC.2008.209" target="_blank" rel="noopener">DOI</a>
+                    </div>
+                </li>
+                <li>
+                    <div class="rtitle">The Case for Energy-Proportional Computing</div>
+                    <div class="rmeta">Barroso &amp; Hölzle, IEEE Computer 2007</div>
+                    <div class="links">
+                        <a href="https://doi.org/10.1109/MC.2007.443" target="_blank" rel="noopener">DOI</a>
+                    </div>
+                </li>
+                <li>
+                    <div class="rtitle">Dark Silicon and the End of Multicore Scaling</div>
+                    <div class="rmeta">Esmaeilzadeh et al., ISCA 2011</div>
+                    <div class="links">
+                        <a href="https://doi.org/10.1145/2000064.2000108" target="_blank" rel="noopener">DOI</a>
+                    </div>
+                </li>
+                <li>
+                    <div class="rtitle">A New Golden Age for Computer Architecture</div>
+                    <div class="rmeta">Hennessy &amp; Patterson, CACM 2019 · the framing for the second half of
+                        the course</div>
+                    <div class="links">
+                        <a href="https://doi.org/10.1145/3282307" target="_blank" rel="noopener">DOI</a>
+                    </div>
+                </li>
+            </ul>
+            <p class="footnote">
+                Copyrighted texts, recordings and setup guides for enrolled students are on Moodle.
+            </p>
+        </section>
+
+        <!-- Logistics -->
+        <section id="logistics" class="section reveal">
+            <span class="section-tag">04 — Logistics</span>
+            <h2>Course Logistics</h2>
+
+            <div class="instructors">
+                <div class="instructor">
+                    <div class="iname"><a href="https://www.iiit.ac.in/faculty/priyesh-shukla/" target="_blank"
+                            rel="noopener">Priyesh Shukla</a></div>
+                    <div class="irole">Foundations · accelerators</div>
+                </div>
+                <div class="instructor">
+                    <div class="iname"><a href="https://sureshpurini.github.io/" target="_blank"
+                            rel="noopener">Suresh Purini</a></div>
+                    <div class="irole">Bluespec &amp; RISC-V · ILP</div>
+                </div>
+            </div>
+
+            <div class="logistics">
+                <div>
+                    <h3>At a glance</h3>
+                    <dl>
+                        <dt>Lectures</dt><dd><span class="todo">Days / time — TBD</span></dd>
+                        <dt>Venue</dt><dd><span class="todo">TBD</span></dd>
+                        <dt>Office hours</dt><dd><span class="todo">TBD</span></dd>
+                        <dt>TAs</dt><dd><span class="todo">TBD</span></dd>
+                        <dt>Credits</dt><dd><span class="todo">TBD</span></dd>
+                        <dt>Announcements</dt><dd>via Moodle</dd>
+                    </dl>
+                </div>
+                <div>
+                    <h3>Grading <span class="todo" style="font-size:0.8rem;">(tentative)</span></h3>
+                    <table class="grade-table">
+                        <thead><tr><th>Component</th><th>Weight</th></tr></thead>
+                        <tbody>
+                            <tr><td>Assignments</td><td>TBD</td></tr>
+                            <tr><td>Pre-class responses &amp; participation</td><td>TBD</td></tr>
+                            <tr><td>Project</td><td>TBD</td></tr>
+                            <tr><td>Mid-term</td><td>TBD</td></tr>
+                            <tr><td>End-term</td><td>TBD</td></tr>
+                        </tbody>
+                    </table>
+                    <p style="margin-top:1rem; font-size:0.88rem;">
+                        Academic honesty: all submitted work must be your own; collaboration and tool
+                        policies are stated on Moodle.
+                    </p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>Advanced Computer Architecture · Monsoon 2026 ·
+                <a href="https://www.iiit.ac.in/faculty/priyesh-shukla/" target="_blank" rel="noopener">Priyesh
+                    Shukla</a> &amp;
+                <a href="https://sureshpurini.github.io/" target="_blank" rel="noopener">Suresh Purini</a> ·
+                IIIT Hyderabad
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // Reveal sections on scroll
+        const io = new IntersectionObserver((entries) => {
+            entries.forEach((e) => {
+                if (e.isIntersecting) { e.target.classList.add('is-visible'); io.unobserve(e.target); }
+            });
+        }, { threshold: 0.12 });
+        document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+    </script>
+</body>
+
+</html>
