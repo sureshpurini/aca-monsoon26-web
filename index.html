@@ -104,14 +104,16 @@
                             <td class="ltopic">The End of Easy Scaling: From Moore's Law to the Parallelism Era
                                 <span class="lblock">Dennard scaling · the power, memory and ILP walls · dark silicon · why specialization won</span>
                                 <a class="slide-link" href="slides/L1.pdf" target="_blank" rel="noopener">Slides (PDF) →</a>
-                                <a class="slide-link" href="https://www.youtube.com/watch?v=tawb_aeYQ2g&amp;list=PLAwxTw4SYaPmqpjgrmf4-DGlaeV0om4iP&amp;index=1" target="_blank" rel="noopener">Videos → HPCA Lesson 1</a></td>
+                                <a class="slide-link" href="https://www.youtube.com/watch?v=tawb_aeYQ2g&amp;list=PLAwxTw4SYaPmqpjgrmf4-DGlaeV0om4iP&amp;index=1" target="_blank" rel="noopener">Videos → HPCA Lesson 1</a>
+                                <a class="slide-link" href="#readings-l1">Readings →</a></td>
                         </tr>
                         <tr>
                             <td class="lnum">L2</td>
                             <td class="ltopic">Measuring Compute: Benchmarking, Power, and Why Numbers Lie
                                 <span class="lblock">peak vs sustained · roofline · SPEC CPU2017 · geometric mean · TDP vs measured power · measurement bias</span>
                                 <a class="slide-link" href="slides/L2.pdf" target="_blank" rel="noopener">Slides (PDF) →</a>
-                                <a class="slide-link" href="https://www.youtube.com/watch?v=q9yDL81QppI&amp;list=PLAwxTw4SYaPmqpjgrmf4-DGlaeV0om4iP&amp;index=25" target="_blank" rel="noopener">Videos → HPCA Lesson 2</a></td>
+                                <a class="slide-link" href="https://www.youtube.com/watch?v=q9yDL81QppI&amp;list=PLAwxTw4SYaPmqpjgrmf4-DGlaeV0om4iP&amp;index=25" target="_blank" rel="noopener">Videos → HPCA Lesson 2</a>
+                                <a class="slide-link" href="#readings-l2">Readings →</a></td>
                         </tr>
                     </tbody>
                 </table>
@@ -391,27 +393,55 @@
             </ul>
 
             <h3 style="margin-top:1.75rem;">Selected readings</h3>
+            <p style="font-size:0.92rem;">
+                Grouped by the lecture they back. Papers for the later modules are announced
+                as those lectures approach.
+            </p>
+
+            <span class="block-label" id="readings-l1">L1 · Moore's Law and the walls</span>
             <ul class="reslist">
                 <li>
                     <div class="rtitle">The Future of Computing Beyond Moore's Law</div>
-                    <div class="rmeta">Shalf, Philosophical Transactions of the Royal Society A 378(2166), 2020 · the post-Moore landscape, for L1</div>
+                    <div class="rmeta">Shalf, Philosophical Transactions of the Royal Society A 378(2166), 2020 · what replaces device scaling once it stops</div>
                     <div class="links">
                         <a href="https://doi.org/10.1098/rsta.2019.0061" target="_blank" rel="noopener">DOI</a>
                     </div>
                 </li>
                 <li>
-                    <div class="rtitle">Roofline: An Insightful Visual Performance Model for Multicore
-                        Architectures</div>
-                    <div class="rmeta">Williams, Waterman &amp; Patterson, CACM 2009 · assigned before L2</div>
+                    <div class="rtitle">Dark Silicon and the End of Multicore Scaling</div>
+                    <div class="rmeta">Esmaeilzadeh et al., ISCA 2011 · why you cannot switch all the transistors you can fit</div>
+                    <div class="links">
+                        <a href="https://doi.org/10.1145/2000064.2000108" target="_blank" rel="noopener">DOI</a>
+                    </div>
+                </li>
+                <li>
+                    <div class="rtitle">Amdahl's Law in the Multicore Era</div>
+                    <div class="rmeta">Hill &amp; Marty, IEEE Computer 2008 · the ceiling on what parallelism can buy</div>
+                    <div class="links">
+                        <a href="https://doi.org/10.1109/MC.2008.209" target="_blank" rel="noopener">DOI</a>
+                    </div>
+                </li>
+                <li>
+                    <div class="rtitle">A New Golden Age for Computer Architecture</div>
+                    <div class="rmeta">Hennessy &amp; Patterson, CACM 2019 · the framing for the whole course</div>
+                    <div class="links">
+                        <a href="https://doi.org/10.1145/3282307" target="_blank" rel="noopener">DOI</a>
+                    </div>
+                </li>
+            </ul>
+
+            <span class="block-label" id="readings-l2">L2 · Measuring compute</span>
+            <ul class="reslist">
+                <li>
+                    <div class="rtitle">Roofline: An Insightful Visual Performance Model for Multicore Architectures</div>
+                    <div class="rmeta">Williams, Waterman &amp; Patterson, CACM 2009 · the assigned pre-class read; revisited in L23</div>
                     <div class="links">
                         <a href="https://doi.org/10.1145/1498765.1498785" target="_blank" rel="noopener">DOI</a>
                     </div>
                 </li>
                 <li>
-                    <div class="rtitle">How Not to Lie with Statistics: The Correct Way to Summarize
-                        Benchmark Results</div>
-                    <div class="rmeta">Fleming &amp; Wallace, CACM 1986 · the geometric-mean argument, and the
-                        primer for the L2 debate</div>
+                    <div class="rtitle">How Not to Lie with Statistics: The Correct Way to Summarize Benchmark Results</div>
+                    <div class="rmeta">Fleming &amp; Wallace, CACM 1986 · the geometric-mean argument, and the primer for the in-class debate</div>
                     <div class="links">
                         <a href="https://doi.org/10.1145/5666.5673" target="_blank" rel="noopener">DOI</a>
                     </div>
@@ -425,7 +455,7 @@
                 </li>
                 <li>
                     <div class="rtitle">SPEC CPU2017: Next-Generation Compute Benchmark</div>
-                    <div class="rmeta">Bucek, Lange &amp; von Kistowski, ICPE 2018</div>
+                    <div class="rmeta">Bucek, Lange &amp; von Kistowski, ICPE 2018 · the suite itself</div>
                     <div class="links">
                         <a href="https://doi.org/10.1145/3185768.3185771" target="_blank" rel="noopener">DOI</a>
                     </div>
@@ -439,38 +469,16 @@
                 </li>
                 <li>
                     <div class="rtitle">MLPerf: An Industry Standard Benchmark Suite for Machine Learning Performance</div>
-                    <div class="rmeta">Mattson et al., IEEE Micro 40(2), 2020 · benchmarking when the workload is a model, for L2</div>
+                    <div class="rmeta">Mattson et al., IEEE Micro 40(2), 2020 · benchmarking when the workload is a model; returns in L21–L22</div>
                     <div class="links">
                         <a href="https://doi.org/10.1109/MM.2020.2974843" target="_blank" rel="noopener">DOI</a>
                     </div>
                 </li>
                 <li>
-                    <div class="rtitle">Amdahl's Law in the Multicore Era</div>
-                    <div class="rmeta">Hill &amp; Marty, IEEE Computer 2008</div>
-                    <div class="links">
-                        <a href="https://doi.org/10.1109/MC.2008.209" target="_blank" rel="noopener">DOI</a>
-                    </div>
-                </li>
-                <li>
                     <div class="rtitle">The Case for Energy-Proportional Computing</div>
-                    <div class="rmeta">Barroso &amp; Hölzle, IEEE Computer 2007</div>
+                    <div class="rmeta">Barroso &amp; Hölzle, IEEE Computer 2007 · power envelopes and what idle costs</div>
                     <div class="links">
                         <a href="https://doi.org/10.1109/MC.2007.443" target="_blank" rel="noopener">DOI</a>
-                    </div>
-                </li>
-                <li>
-                    <div class="rtitle">Dark Silicon and the End of Multicore Scaling</div>
-                    <div class="rmeta">Esmaeilzadeh et al., ISCA 2011</div>
-                    <div class="links">
-                        <a href="https://doi.org/10.1145/2000064.2000108" target="_blank" rel="noopener">DOI</a>
-                    </div>
-                </li>
-                <li>
-                    <div class="rtitle">A New Golden Age for Computer Architecture</div>
-                    <div class="rmeta">Hennessy &amp; Patterson, CACM 2019 · the framing for the second half of
-                        the course</div>
-                    <div class="links">
-                        <a href="https://doi.org/10.1145/3282307" target="_blank" rel="noopener">DOI</a>
                     </div>
                 </li>
             </ul>
