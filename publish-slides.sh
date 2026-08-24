@@ -13,9 +13,9 @@
 #   lectures/L2-tiny-processor        ->  slides/L4.html
 #   lectures/L3-drum-processor        ->  slides/L5.html
 #
-# Priyesh's L1/L2 decks are NOT published here yet — drop them in as
-# slides/L1.html and slides/L2.html once he approves, and swap the
-# "Slides — pending release" markers in index.html for real links.
+# The Foundations decks (L1, L2) are PDFs authored outside the course repo.
+# They live at slides/L1.pdf and slides/L2.pdf and are NOT managed here — copy
+# a new version straight over them and commit.
 #
 # Usage:
 #   ./publish-slides.sh              # copy decks that are newer than published

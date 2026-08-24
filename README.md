@@ -31,7 +31,7 @@ The site numbers lectures **continuously across both instructors**, which does
 
 | Site | Course repo folder | Instructor |
 |------|--------------------|------------|
-| L1, L2 | *(Priyesh's decks — not yet released)* | Priyesh Shukla |
+| L1, L2 | *(authored outside this repo — dropped in as `slides/L1.pdf`, `slides/L2.pdf`)* | Priyesh Shukla · Suresh Purini |
 | L3 | `lectures/L1-digital-circuits-bsv` | Suresh Purini |
 | L4 | `lectures/L2-tiny-processor` | Suresh Purini |
 | L5 | `lectures/L3-drum-processor` | Suresh Purini |
@@ -57,10 +57,16 @@ Verify before pushing:
 grep -c "PRESENTER NOTES" slides/*.html   # must all be 0
 ```
 
-**Priyesh's L1 and L2 decks are not published yet.** Once he approves, drop them
-in as `slides/L1.html` / `slides/L2.html` and replace the two
-`<span class="pending">Slides — pending release</span>` markers in `index.html`
-with `<a class="slide-link" href="slides/L1.html" …>Slides →</a>`.
+The Foundations decks (L1, L2) are **PDFs**, not Marp builds — they are authored
+outside the course repo, so `publish-slides.sh` does not touch them. Copy a new
+version straight over `slides/L1.pdf` / `slides/L2.pdf` and commit.
+
+For a lecture whose deck is not yet cleared for release, put an inert marker on
+its schedule row instead of a link — the `.pending` style exists for this:
+
+```html
+<span class="pending">Slides — pending release</span>
+```
 
 ## Edit
 
