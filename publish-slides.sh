@@ -17,6 +17,10 @@
 # They live at slides/L1.pdf and slides/L2.pdf and are NOT managed here — copy
 # a new version straight over them and commit.
 #
+# Also publishes the hand-written interactive worksheets (worksheets/<name>.html),
+# which have no build step -- they are checked into the lecture folder as one
+# self-contained file.
+#
 # Usage:
 #   ./publish-slides.sh              # copy decks that are newer than published
 #   ./publish-slides.sh --build      # run each deck's build-html.sh first
@@ -28,10 +32,19 @@ SRC="${COURSE_REPO:-$WEB_DIR/../aca-monsoon26}"
 DST="$WEB_DIR/slides"
 
 # folder-in-course-repo : published-name
+# Older folders are named by authoring order, so the map is not the identity;
+# L6 onward are named by course number and map straight across.
 DECKS=(
   "L1-digital-circuits-bsv:L3"
   "L2-tiny-processor:L4"
   "L3-drum-processor:L5"
+  "L6-pipeline-hazards:L6"
+)
+
+# Hand-written interactive worksheets: a single self-contained HTML checked into
+# the lecture folder, with no build step. Published under worksheets/.
+WORKSHEETS=(
+  "L6-pipeline-hazards:L6"
 )
 
 BUILD=0
@@ -76,6 +89,22 @@ for entry in "${DECKS[@]}"; do
 
   cp "$deck" "$DST/$name.html"
   echo "publish: $folder.html -> slides/$name.html ($(( $(wc -c < "$deck") / 1024 )) KB)"
+done
+
+# ---- worksheets: no build step, just a self-contained file to copy across
+WDST="$WEB_DIR/worksheets"
+for entry in "${WORKSHEETS[@]}"; do
+  folder="${entry%%:*}"
+  name="${entry##*:}"
+  ws="$SRC/lectures/$folder/worksheet.html"
+
+  if [[ ! -f "$ws" ]]; then
+    echo "skip: $folder has no worksheet.html"
+    continue
+  fi
+  mkdir -p "$WDST"
+  cp "$ws" "$WDST/$name.html"
+  echo "publish: $folder/worksheet.html -> worksheets/$name.html ($(( $(wc -c < "$ws") / 1024 )) KB)"
 done
 
 echo
