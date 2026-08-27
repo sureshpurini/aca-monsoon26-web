@@ -23,6 +23,7 @@
                 <ul>
                     <li><a href="#overview">Overview</a></li>
                     <li><a href="#schedule">Schedule</a></li>
+                    <li><a href="#labs">Labs</a></li>
                     <li><a href="#resources">Resources</a></li>
                     <li><a href="#logistics">Logistics</a></li>
                 </ul>
@@ -331,9 +332,52 @@
             </p>
         </section>
 
+        <!-- Labs -->
+        <section id="labs" class="section reveal">
+            <span class="section-tag">03 — Labs &amp; Project</span>
+            <h2>Build It Yourself</h2>
+
+            <p style="font-size:0.92rem;">
+                A hands-on track runs alongside the lectures. You install the Bluespec toolchain
+                once, and from there you work on a real pipelined RISC-V CPU rather than a diagram
+                of one — reading it first, then extending it.
+            </p>
+
+            <div class="callout">
+                <strong>All lab material is in one public repository.</strong>
+                Clone it once and <code>git pull</code> before each lab —
+                <a href="https://github.com/sureshpurini/aca-monsoon26-labs" target="_blank"
+                    rel="noopener">github.com/sureshpurini/aca-monsoon26-labs</a>
+            </div>
+
+            <ul class="reslist">
+                <li>
+                    <div class="rtitle">Lab 0 — Get the toolchain working</div>
+                    <div class="rmeta">Install <code>bsc</code> and Verilator, then run three smoke
+                        tests: the compiler's own, a 2×2 matrix multiply written for this course, and
+                        finally <strong>Fife</strong> — the pipelined RV32I CPU — booting on your own
+                        machine. Not graded, about 40 minutes, and every later lab assumes it.
+                        Do it in the first week.</div>
+                    <div class="links">
+                        <a href="https://github.com/sureshpurini/aca-monsoon26-labs/tree/master/lab0"
+                            target="_blank" rel="noopener">Handout →</a>
+                    </div>
+                </li>
+                <li>
+                    <div class="rtitle">Mini-project — a matrix-multiply accelerator as a RISC-V
+                        extension</div>
+                    <div class="rmeta">Add a custom instruction to <strong>Fife</strong> and build the
+                        functional unit behind it. The interesting part is not the multiplier: it is what
+                        a multi-cycle unit does to an in-order pipeline — the same hazards L6 raises,
+                        met in hardware you wrote. The 2×2 multiplier from Lab 0 is the seed.
+                        <span class="pending">Specification announced later in the semester.</span></div>
+                </li>
+            </ul>
+        </section>
+
         <!-- Resources -->
         <section id="resources" class="section reveal">
-            <span class="section-tag">03 — Resources</span>
+            <span class="section-tag">04 — Resources</span>
             <h2>Books, Code &amp; Lectures</h2>
 
             <h3>Primary sources</h3>
@@ -491,7 +535,7 @@
 
         <!-- Logistics -->
         <section id="logistics" class="section reveal">
-            <span class="section-tag">04 — Logistics</span>
+            <span class="section-tag">05 — Logistics</span>
             <h2>Course Logistics</h2>
 
             <div class="instructors">
