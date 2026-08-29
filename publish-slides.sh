@@ -45,6 +45,7 @@ DECKS=(
 # the lecture folder, with no build step. Published under worksheets/.
 WORKSHEETS=(
   "L6-pipeline-hazards:L6"
+  "L7-scoreboarding:L7"
 )
 
 BUILD=0

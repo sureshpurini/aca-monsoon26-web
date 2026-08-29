@@ -1,0 +1,629 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Scoreboard Stepper</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+
+<style>
+:root{
+  --ink:#1a1a2e; --muted:#5b5b6b; --accent:#2d4a8a; --red:#b03a2e;
+  --green:#2e7d32; --violet:#5b4b8a; --gold:#8a6508;
+  --bg:#fbfbfd; --panel:#f4f6fb; --card:#ffffff; --border:#d7dbe6;
+  --blue-f:#dce6f7; --red-f:#f6ddd8; --green-f:#dfeede;
+  --gold-f:#fff3d6; --violet-f:#e7e3f3; --idle:#eceef4;
+  --on-accent:#ffffff; --th-bg:#2d4a8a; --th-fg:#ffffff;
+  --tl-stage:#6f97d8; --tl-exec:#cc6d5a; --tl-write:#5da76c;
+  --tl-raw:#f0bfb4; --tl-war:#eed494; --tl-waw:#cfc0ec; --tl-struct:#d5d7e0;
+  --shadow:0 1px 2px rgba(26,26,46,.06), 0 4px 14px rgba(26,26,46,.05);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ink:#e9eaf2; --muted:#a2a8bd; --accent:#8fb0e8; --red:#ef9a88;
+    --green:#86d191; --violet:#bcaae8; --gold:#e6c168;
+    --bg:#13141b; --panel:#232532; --card:#1b1d27; --border:#353849;
+    --blue-f:#26364f; --red-f:#452a25; --green-f:#213a27;
+    --gold-f:#413419; --violet-f:#312946; --idle:#272936;
+    --on-accent:#101420; --th-bg:#2c3b5c; --th-fg:#dbe6fa;
+    --tl-stage:#4d74b4; --tl-exec:#bb6450; --tl-write:#3f8a55;
+    --tl-raw:#55302a; --tl-war:#6b5423; --tl-waw:#4a3d70; --tl-struct:#3a3d4c;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 4px 16px rgba(0,0,0,.38);
+  }
+}
+:root[data-theme="dark"]{
+    --ink:#e9eaf2; --muted:#a2a8bd; --accent:#8fb0e8; --red:#ef9a88;
+  --green:#86d191; --violet:#bcaae8; --gold:#e6c168;
+  --bg:#13141b; --panel:#232532; --card:#1b1d27; --border:#353849;
+  --blue-f:#26364f; --red-f:#452a25; --green-f:#213a27;
+  --gold-f:#413419; --violet-f:#312946; --idle:#272936;
+  --on-accent:#101420; --th-bg:#2c3b5c; --th-fg:#dbe6fa;
+  --tl-stage:#4d74b4; --tl-exec:#bb6450; --tl-write:#3f8a55;
+  --tl-raw:#55302a; --tl-war:#6b5423; --tl-waw:#4a3d70; --tl-struct:#3a3d4c;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 4px 16px rgba(0,0,0,.38);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:Inter,"Helvetica Neue","Segoe UI",system-ui,sans-serif;
+  font-size:15px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1280px; margin:0 auto; padding:28px 22px 64px}
+code,.mono,table.sb{font-family:"JetBrains Mono","SFMono-Regular",Consolas,monospace}
+
+/* ---------- header ---------- */
+header{margin-bottom:22px}
+.eyebrow{
+  font-size:11.5px; font-weight:600; letter-spacing:.11em; text-transform:uppercase;
+  color:var(--muted); margin-bottom:7px;
+}
+h1{font-size:29px; line-height:1.15; margin:0 0 8px; font-weight:700; letter-spacing:-.02em}
+.lede{color:var(--muted); max-width:65ch; margin:0}
+
+/* ---------- controls ---------- */
+.bar{
+  display:flex; flex-wrap:wrap; gap:14px; align-items:center;
+  background:var(--card); border:1px solid var(--border); border-radius:11px;
+  padding:13px 15px; margin:20px 0 18px; box-shadow:var(--shadow);
+  position:sticky; top:0; z-index:20;
+}
+.seg{display:flex; border:1px solid var(--border); border-radius:8px; overflow:hidden}
+.seg button{
+  border:0; background:var(--card); color:var(--muted); cursor:pointer;
+  font:inherit; font-size:13px; font-weight:600; padding:8px 14px;
+}
+.seg button + button{border-left:1px solid var(--border)}
+.seg button[aria-pressed="true"]{background:var(--accent); color:var(--on-accent)}
+.seg button:focus-visible{outline:2px solid var(--accent); outline-offset:-2px}
+
+.transport{display:flex; gap:6px; align-items:center}
+.transport button{
+  border:1px solid var(--border); background:var(--card); color:var(--ink);
+  border-radius:8px; cursor:pointer; font:inherit; font-size:15px;
+  width:38px; height:36px; display:grid; place-items:center;
+}
+.transport button:hover:not(:disabled){border-color:var(--accent); color:var(--accent)}
+.transport button:disabled{opacity:.35; cursor:default}
+.transport button:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.transport button svg{width:15px; height:15px; fill:currentColor; display:block}
+#play[aria-pressed="true"]{background:var(--accent); color:var(--on-accent); border-color:var(--accent)}
+
+.cyc{display:flex; align-items:center; gap:10px; flex:1 1 260px; min-width:220px}
+.cyc input[type=range]{flex:1; accent-color:var(--accent); min-width:120px}
+.cyclabel{font-size:13px; color:var(--muted); white-space:nowrap}
+.cyclabel b{color:var(--ink); font-size:16px; font-variant-numeric:tabular-nums}
+
+/* ---------- narration ---------- */
+.narrate{
+  background:var(--card); border:1px solid var(--border); border-left:4px solid var(--accent);
+  border-radius:10px; padding:13px 16px; margin-bottom:20px; min-height:76px;
+  box-shadow:var(--shadow);
+}
+.narrate h3{margin:0 0 7px; font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted)}
+.ev{display:flex; gap:9px; align-items:baseline; margin:4px 0; font-size:14px}
+.chip{
+  font-size:10.5px; font-weight:700; letter-spacing:.05em; padding:2px 7px;
+  border-radius:5px; white-space:nowrap; flex:none; min-width:64px; text-align:center;
+}
+.c-issue{background:var(--blue-f); color:var(--accent)}
+.c-read {background:var(--blue-f); color:var(--accent)}
+.c-exec {background:var(--red-f);  color:var(--red)}
+.c-write{background:var(--green-f);color:var(--green)}
+.c-RAW  {background:var(--red-f);  color:var(--red)}
+.c-WAR  {background:var(--gold-f); color:var(--gold)}
+.c-WAW  {background:var(--violet-f);color:var(--violet)}
+.c-STRUCT{background:var(--idle);  color:var(--muted)}
+.ev em{font-style:normal; color:var(--muted)}
+.done{color:var(--green); font-weight:600}
+
+/* ---------- panels ---------- */
+.grid{display:grid; gap:16px; grid-template-columns:1fr}
+@media (min-width:900px){ .grid.two{grid-template-columns:minmax(0,1fr) minmax(0,1.35fr)} }
+.card{
+  background:var(--card); border:1px solid var(--border); border-radius:11px;
+  padding:14px 16px 16px; box-shadow:var(--shadow); min-width:0;
+}
+.card h2{
+  margin:0 0 3px; font-size:14.5px; font-weight:700; letter-spacing:-.01em;
+}
+.card p.sub{margin:0 0 11px; font-size:12px; color:var(--muted)}
+.scroll{overflow-x:auto; margin:0 -4px; padding:0 4px}
+
+table.sb{border-collapse:collapse; font-size:12px; width:100%}
+table.sb th{
+  background:var(--th-bg); color:var(--th-fg); font-weight:600; text-align:center;
+  padding:5px 7px; font-family:Inter,sans-serif; font-size:11px; white-space:nowrap;
+}
+table.sb th:first-child{text-align:left}
+table.sb td{
+  border:1px solid var(--border); padding:4px 7px; text-align:center;
+  white-space:nowrap; font-variant-numeric:tabular-nums;
+}
+table.sb td:first-child{text-align:left}
+table.sb tr:nth-child(even) td{background:var(--panel)}
+td.hl-gold  {outline:2.5px solid var(--gold);   outline-offset:-2.5px; font-weight:700}
+td.hl-violet{outline:2.5px solid var(--violet); outline-offset:-2.5px; font-weight:700}
+td.hl-red   {outline:2.5px solid var(--red);    outline-offset:-2.5px; font-weight:700}
+tr.now td{background:var(--blue-f) !important}
+.muted{color:var(--muted)}
+
+/* the (Qj,Rj) key -- three states, and the pair is what disambiguates them */
+.key{display:flex; flex-wrap:wrap; gap:7px; margin-top:10px}
+.key .k{
+  display:flex; gap:7px; align-items:baseline; font-size:11.5px; color:var(--muted);
+  border:1px solid var(--border); border-radius:7px; padding:5px 9px; background:var(--panel);
+}
+.key .k b{color:var(--ink); font-weight:600}
+.key .k i{font-style:normal; font-family:"JetBrains Mono",monospace; font-size:10.5px;
+          color:var(--accent); white-space:nowrap}
+.key .lead{font-size:11.5px; color:var(--muted); align-self:center; padding-right:2px}
+
+/* ---------- timeline ---------- */
+.tl{border-collapse:collapse; font-size:10.5px}
+.tl th{padding:3px 0; font-weight:500; color:var(--muted); font-family:Inter,sans-serif;
+       font-size:9.5px; text-align:center; font-variant-numeric:tabular-nums}
+.tl th.ins{
+  text-align:left; padding-right:12px; color:var(--ink); font-size:11.5px;
+  font-family:"JetBrains Mono",monospace; white-space:nowrap; position:sticky; left:0;
+  background:var(--card);
+}
+.tl td{width:17px; height:25px; border:1px solid var(--border); padding:0}
+.tl td.issue,.tl td.read{background:var(--tl-stage)}
+.tl td.exec {background:var(--tl-exec)}
+.tl td.write{background:var(--tl-write)}
+.tl td.wRAW {background:var(--tl-raw)}
+.tl td.wWAR {background:var(--tl-war)}
+.tl td.wWAW {background:var(--tl-waw)}
+.tl td.wSTRUCT{background:var(--tl-struct)}
+.tl td.future{opacity:.34}
+.tl td.cursor{box-shadow:inset 0 0 0 2px var(--ink)}
+.legend{display:flex; flex-wrap:wrap; gap:13px; margin-top:11px; font-size:11.5px; color:var(--muted)}
+.legend span{display:flex; align-items:center; gap:5px}
+.legend .grp{gap:6px; border:1px solid var(--border); border-radius:7px;
+             padding:4px 10px; background:var(--panel)}
+.legend .grp b{color:var(--ink); font-weight:600; margin-right:2px}
+.legend .grp i{margin-left:4px}
+.sw{width:13px; height:13px; border:1px solid var(--border); border-radius:3px; flex:none}
+
+/* ---------- program listing ---------- */
+ol.prog{margin:0; padding:0; list-style:none; font-size:12.5px}
+ol.prog li{
+  display:flex; gap:9px; align-items:baseline; padding:3px 7px; border-radius:5px;
+  font-family:"JetBrains Mono",monospace;
+}
+ol.prog li .n{color:var(--muted); font-size:11px; min-width:17px}
+ol.prog li.act{background:var(--blue-f)}
+ol.prog li.fin{color:var(--muted)}
+.units{font-size:12px; color:var(--muted); margin-top:11px; line-height:1.65}
+.units b{color:var(--ink); font-weight:600}
+
+footer{margin-top:34px; padding-top:18px; border-top:1px solid var(--border);
+       font-size:12.5px; color:var(--muted); max-width:72ch}
+kbd{
+  font-family:"JetBrains Mono",monospace; font-size:11px; border:1px solid var(--border);
+  border-bottom-width:2px; border-radius:4px; padding:1px 5px; background:var(--panel);
+  color:var(--ink);
+}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">CS2.501 Advanced Computer Architecture · Lecture 7</div>
+  <h1>Scoreboard Stepper</h1>
+  <p class="lede">Step a CDC 6600 scoreboard one cycle at a time and watch the three
+  tables change. Every stall is labelled with the hazard that caused it and the field
+  the machine actually consulted.</p>
+</header>
+
+<div class="bar">
+  <div class="seg" role="group" aria-label="Choose example">
+    <button id="exA" aria-pressed="true">Ours — the one that went wrong</button>
+    <button id="exB" aria-pressed="false">Hennessy &amp; Patterson</button>
+  </div>
+  <div class="transport">
+    <button id="first" title="Reset to cycle 1" aria-label="Reset to cycle 1"><svg viewBox="0 0 16 16"><rect x="3" y="3" width="2" height="10"/><path d="M13 3 L13 13 L6 8 Z"/></svg></button>
+    <button id="prev"  title="Previous cycle"   aria-label="Previous cycle"><svg viewBox="0 0 16 16"><path d="M12 3 L12 13 L5 8 Z"/></svg></button>
+    <button id="play"  title="Play / pause" aria-pressed="false" aria-label="Play"><svg viewBox="0 0 16 16"><path d="M4.5 3 L4.5 13 L12 8 Z"/></svg></button>
+    <button id="next"  title="Next cycle"       aria-label="Next cycle"><svg viewBox="0 0 16 16"><path d="M3 3 L3 13 L10.5 8 Z"/><rect x="11.5" y="3" width="2" height="10"/></svg></button>
+    <button id="last"  title="Jump to the end"  aria-label="Jump to the end"><svg viewBox="0 0 16 16"><path d="M2 3 L2 13 L7.5 8 Z"/><path d="M7 3 L7 13 L12.5 8 Z"/><rect x="13" y="3" width="2" height="10"/></svg></button>
+  </div>
+  <div class="cyc">
+    <input id="slider" type="range" min="1" value="1" aria-label="Cycle">
+    <span class="cyclabel">cycle <b id="cnum">1</b> / <span id="ctot">32</span></span>
+  </div>
+</div>
+
+<div class="narrate">
+  <h3>This cycle</h3>
+  <div id="events"></div>
+</div>
+
+<div class="grid two">
+  <div class="card">
+    <h2>The program</h2>
+    <p class="sub" id="progsub"></p>
+    <ol class="prog" id="prog"></ol>
+    <div class="units" id="units"></div>
+  </div>
+
+  <div class="card">
+    <h2>Functional unit status</h2>
+    <p class="sub">Who produces my operands — and am I still going to read them?</p>
+    <div class="scroll"><table class="sb" id="fu"></table></div>
+    <div class="key">
+      <span class="lead">reading <b>Q</b> and <b>R</b> as a pair:</span>
+      <span class="k"><i>Q=unit&nbsp; R=N</i> <b>waiting</b> for that unit</span>
+      <span class="k"><i>Q=—&nbsp; R=Y</i> <b>ready, not yet read</b></span>
+      <span class="k"><i>Q=—&nbsp; R=N</i> <b>already read</b></span>
+    </div>
+    <p class="sub" style="margin:9px 0 0">
+      <code>R = N</code> covers two opposite situations — <code>Q</code> tells them
+      apart. A writer is blocked exactly while some other unit still shows
+      <code>R = Y</code> on the register it wants.</p>
+  </div>
+</div>
+
+<div class="grid two" style="margin-top:16px">
+  <div class="card">
+    <h2>Register result status</h2>
+    <p class="sub">Which unit is going to write each register. Blank means nobody.
+      <span class="muted">Address registers (<code>x1</code>, <code>x2</code>,
+      <code>x3</code>) are tracked like any other source — nothing in these programs
+      writes one, so they stay blank and never block a read.</span></p>
+    <div class="scroll"><table class="sb" id="rr"></table></div>
+  </div>
+  <div class="card">
+    <h2>Instruction status</h2>
+    <p class="sub">Which of the four stages each instruction has reached.</p>
+    <div class="scroll"><table class="sb" id="is"></table></div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:16px">
+  <h2>The whole run</h2>
+  <p class="sub" id="tlsub"></p>
+  <div class="scroll"><table class="tl" id="tl"></table></div>
+  <div class="legend">
+    <span class="grp"><b>working</b>
+      <i class="sw" style="background:var(--tl-stage)"></i> issue / read
+      <i class="sw" style="background:var(--tl-exec)"></i> execute
+      <i class="sw" style="background:var(--tl-write)"></i> write</span>
+    <span class="grp"><b>stalled</b>
+      <i class="sw" style="background:var(--tl-raw)"></i> RAW
+      <i class="sw" style="background:var(--tl-war)"></i> WAR
+      <i class="sw" style="background:var(--tl-waw)"></i> WAW
+      <i class="sw" style="background:var(--tl-struct)"></i> structural</span>
+  </div>
+</div>
+
+<footer>
+  <p><b>Keyboard:</b> <kbd>←</kbd> <kbd>→</kbd> step, <kbd>Space</kbd> play/pause,
+  <kbd>Home</kbd> / <kbd>End</kbd> jump, <kbd>1</kbd> <kbd>2</kbd> switch example.</p>
+  <p>Issue is in program order, one instruction per cycle. Nothing is forwarded: a
+  consumer waits for its producer to reach the register file. All four checks are
+  evaluated against the state at the <em>start</em> of each cycle, which is why a value
+  written in cycle <i>n</i> is not readable until <i>n</i>+1.</p>
+</footer>
+</div>
+
+<script>
+"use strict";
+
+/* ------------------------------------------------------------------ *
+ * The two programs.  `u` is the unit type; `d` destination; `s` sources.
+ * ------------------------------------------------------------------ */
+const EXAMPLES = {
+  A: {
+    name: "Ours — the one that went wrong",
+    sub: "The sequence from Part 2, now under a scoreboard. Unprotected it took 20 cycles and produced a wrong f8 and a wrong f6.",
+    units: [ {n:"Integer", t:"int", L:1}, {n:"Add1", t:"add", L:2}, {n:"Add2", t:"add", L:2},
+             {n:"Mult1", t:"mul", L:10}, {n:"Mult2", t:"mul", L:10}, {n:"Divide", t:"div", L:12} ],
+    unitText: "<b>Integer</b> ×1, latency 1 &nbsp;·&nbsp; <b>Add</b> ×2, latency 2 &nbsp;·&nbsp; <b>Multiply</b> ×2, latency 10 &nbsp;·&nbsp; <b>Divide</b> ×1, latency 12",
+    prog: [
+      {txt:"fdiv.d f0, f2, f4",   op:"div", u:"div", d:"f0", s:["f2","f4"]},
+      {txt:"fadd.d f6, f0, f8",   op:"add", u:"add", d:"f6", s:["f0","f8"]},
+      {txt:"fsd    f6, 0(x1)",    op:"sd",  u:"int", d:null, s:["f6","x1"]},
+      {txt:"fsub.d f8, f10, f14", op:"sub", u:"add", d:"f8", s:["f10","f14"]},
+      {txt:"fmul.d f6, f10, f8",  op:"mul", u:"mul", d:"f6", s:["f10","f8"]}
+    ],
+    regs: ["f0","f2","f4","f6","f8","f10","f14","x1"]
+  },
+  B: {
+    name: "Hennessy & Patterson",
+    sub: "The textbook example. Note that WAW never fires in it — no instruction is ever blocked at Issue for its destination.",
+    units: [ {n:"Integer", t:"int", L:1}, {n:"Add", t:"add", L:2},
+             {n:"Mult1", t:"mul", L:10}, {n:"Mult2", t:"mul", L:10}, {n:"Divide", t:"div", L:40} ],
+    unitText: "<b>Integer</b> ×1, latency 1 &nbsp;·&nbsp; <b>Add</b> ×1, latency 2 &nbsp;·&nbsp; <b>Multiply</b> ×2, latency 10 &nbsp;·&nbsp; <b>Divide</b> ×1, latency 40",
+    prog: [
+      {txt:"fld    f6, 34(x2)",   op:"ld",  u:"int", d:"f6",  s:["x2",null]},
+      {txt:"fld    f2, 45(x3)",   op:"ld",  u:"int", d:"f2",  s:["x3",null]},
+      {txt:"fmul.d f0, f2, f4",   op:"mul", u:"mul", d:"f0",  s:["f2","f4"]},
+      {txt:"fsub.d f8, f6, f2",   op:"sub", u:"add", d:"f8",  s:["f6","f2"]},
+      {txt:"fdiv.d f10, f0, f6",  op:"div", u:"div", d:"f10", s:["f0","f6"]},
+      {txt:"fadd.d f6, f8, f2",   op:"add", u:"add", d:"f6",  s:["f8","f2"]}
+    ],
+    regs: ["f0","f2","f4","f6","f8","f10","x2","x3"]
+  }
+};
+
+/* ------------------------------------------------------------------ *
+ * The scoreboard itself.  Every check is evaluated against the state at
+ * the START of a cycle, then all the actions for that cycle are applied
+ * together -- which is what stops a value written in cycle n from being
+ * readable in cycle n.
+ * ------------------------------------------------------------------ */
+function simulate(ex){
+  const U = ex.units.map(u => ({name:u.n, type:u.t, L:u.L, busy:false, op:"", ins:null,
+                                Fi:null, Fj:null, Fk:null, Qj:null, Qk:null,
+                                Rj:false, Rk:false, execDone:null}));
+  const Result = {};
+  const st = ex.prog.map(() => ({issue:null, read:null, exec0:null, exec1:null, write:null}));
+  let next = 0;
+  const frames = [];
+
+  for (let c = 1; c <= 500; c++){
+    const ev = [], stalls = [], hl = [];
+
+    /* ---- decide, from the snapshot ---- */
+    const doWrite = [], doRead = [];
+    U.forEach((u, ui) => {
+      if (!u.busy || u.execDone === null || u.execDone > c - 1) return;
+      if (st[u.ins].write !== null) return;
+      let blk = null;
+      U.forEach((f, fi) => {
+        if (fi === ui || !f.busy || u.Fi === null) return;
+        if (f.Fj === u.Fi && f.Rj) blk = {u:f.name, f:"Fj", r:"Rj", idx:fi};
+        else if (f.Fk === u.Fi && f.Rk) blk = {u:f.name, f:"Fk", r:"Rk", idx:fi};
+      });
+      if (blk){
+        stalls.push({k:"WAR", ins:u.ins,
+          why:`ready since ${u.execDone}, but may not write <code>${u.Fi}</code> — `+
+              `<b>${blk.u}</b> still has it as an unread source`});
+        hl.push({t:"fu", r:blk.idx, f:blk.f, c:"gold"}, {t:"fu", r:blk.idx, f:blk.r, c:"gold"},
+                {t:"fu", r:ui, f:"Fi", c:"gold"});
+      } else doWrite.push(ui);
+    });
+
+    U.forEach((u, ui) => {
+      if (!u.busy || st[u.ins].read !== null || st[u.ins].issue === null || st[u.ins].issue >= c) return;
+      if (u.Rj && u.Rk) doRead.push(ui);
+      else {
+        const miss = !u.Rj ? {reg:u.Fj, q:u.Qj, f:"Fj", r:"Rj"} : {reg:u.Fk, q:u.Qk, f:"Fk", r:"Rk"};
+        stalls.push({k:"RAW", ins:u.ins,
+          why:`waiting for <code>${miss.reg}</code> from <b>${miss.q}</b>`});
+        hl.push({t:"fu", r:ui, f:miss.r, c:"red"}, {t:"rr", reg:miss.reg, c:"red"});
+      }
+    });
+
+    let issue = null;
+    if (next < ex.prog.length){
+      const ins = ex.prog[next];
+      const free = U.findIndex(u => u.type === ins.u && !u.busy);
+      if (free < 0){
+        stalls.push({k:"STRUCT", ins:next, why:`every <b>${ins.u}</b> unit is busy`});
+      } else if (ins.d && Result[ins.d]){
+        stalls.push({k:"WAW", ins:next,
+          why:`<code>Result[${ins.d}]</code> already names <b>${Result[ins.d]}</b> — cannot issue`});
+        hl.push({t:"rr", reg:ins.d, c:"violet"});
+      } else issue = {i:next, ui:free};
+    }
+
+    /* ---- apply ---- */
+    doWrite.forEach(ui => {
+      const u = U[ui];
+      st[u.ins].write = c;
+      ev.push({k:"write", ins:u.ins, why:`<b>${u.name}</b> writes <code>${u.Fi ?? "memory"}</code>`});
+      U.forEach(f => {
+        if (f.Qj === u.name){ f.Rj = true; f.Qj = null; }
+        if (f.Qk === u.name){ f.Rk = true; f.Qk = null; }
+      });
+      if (u.Fi && Result[u.Fi] === u.name) delete Result[u.Fi];
+      Object.assign(u, {busy:false, op:"", ins:null, Fi:null, Fj:null, Fk:null,
+                        Qj:null, Qk:null, Rj:false, Rk:false, execDone:null});
+    });
+    doRead.forEach(ui => {
+      const u = U[ui];
+      st[u.ins].read = c;
+      st[u.ins].exec0 = c + 1; st[u.ins].exec1 = c + u.L;
+      u.Rj = false; u.Rk = false; u.Qj = null; u.Qk = null;
+      u.execDone = c + u.L;
+      ev.push({k:"read", ins:u.ins, why:`<b>${u.name}</b> reads its operands; executes to cycle ${u.execDone}`});
+    });
+    if (issue){
+      const u = U[issue.ui], ins = ex.prog[issue.i];
+      u.busy = true; u.ins = issue.i; u.op = ins.op;
+      u.Fi = ins.d; u.Fj = ins.s[0]; u.Fk = ins.s[1];
+      u.Qj = ins.s[0] ? (Result[ins.s[0]] || null) : null;
+      u.Qk = ins.s[1] ? (Result[ins.s[1]] || null) : null;
+      u.Rj = !u.Qj; u.Rk = !u.Qk; u.execDone = null;
+      if (ins.d) Result[ins.d] = u.name;
+      st[issue.i].issue = c; next++;
+      ev.push({k:"issue", ins:issue.i, why:`issued to <b>${u.name}</b>`});
+    }
+
+    frames.push({
+      c, ev, stalls, hl,
+      U: U.map(u => ({...u})),
+      Result: {...Result},
+      st: st.map(s => ({...s}))
+    });
+
+    if (st.every(s => s.write !== null)) break;
+  }
+  return frames;
+}
+
+/* ------------------------------------------------------------------ */
+let key = "A", F = [], cur = 1, timer = null;
+
+function build(k){
+  key = k; F = simulate(EXAMPLES[k]); cur = 1;
+  const ex = EXAMPLES[k];
+  document.getElementById("exA").setAttribute("aria-pressed", k === "A");
+  document.getElementById("exB").setAttribute("aria-pressed", k === "B");
+  document.getElementById("progsub").textContent = ex.sub;
+  document.getElementById("units").innerHTML = ex.unitText;
+  document.getElementById("ctot").textContent = F.length;
+  document.getElementById("tlsub").innerHTML =
+    `Finishes in <b>${F.length} cycles</b>. Solid = work happening. Washed-out = stalled, coloured by the hazard.`;
+  const sl = document.getElementById("slider");
+  sl.max = F.length; sl.value = 1;
+  buildTimeline();
+  render();
+  save();
+}
+
+const TAG = i => `i${i+1}`;
+
+function render(){
+  const f = F[cur-1], ex = EXAMPLES[key];
+  document.getElementById("cnum").textContent = f.c;
+  document.getElementById("slider").value = cur;
+  document.getElementById("prev").disabled  = cur === 1;
+  document.getElementById("first").disabled = cur === 1;
+  document.getElementById("next").disabled  = cur === F.length;
+  document.getElementById("last").disabled  = cur === F.length;
+
+  /* narration */
+  const box = document.getElementById("events");
+  let h = "";
+  f.ev.forEach(e => {
+    h += `<div class="ev"><span class="chip c-${e.k}">${e.k}</span>` +
+         `<span><code>${TAG(e.ins)}</code> ${ex.prog[e.ins].txt.replace(/\s+/g," ")} — <em>${e.why}</em></span></div>`;
+  });
+  f.stalls.forEach(s => {
+    h += `<div class="ev"><span class="chip c-${s.k}">${s.k === "STRUCT" ? "structural" : s.k}</span>` +
+         `<span><code>${TAG(s.ins)}</code> ${ex.prog[s.ins].txt.replace(/\s+/g," ")} — <em>${s.why}</em></span></div>`;
+  });
+  if (!h) h = `<div class="ev"><span class="chip c-STRUCT">quiet</span><span><em>nothing changes state this cycle</em></span></div>`;
+  if (cur === F.length) h += `<div class="ev" style="margin-top:7px"><span class="chip c-write">done</span><span class="done">All instructions have written. ${F.length} cycles.</span></div>`;
+  box.innerHTML = h;
+
+  /* program listing */
+  document.getElementById("prog").innerHTML = ex.prog.map((p,i) => {
+    const s = f.st[i];
+    const cls = s.write !== null ? "fin" : (s.issue !== null ? "act" : "");
+    return `<li class="${cls}"><span class="n">${TAG(i)}</span><span>${p.txt}</span></li>`;
+  }).join("");
+
+  /* functional unit status */
+  const cols = ["Busy","Op","Fi","Fj","Fk","Qj","Qk","Rj","Rk"];
+  let t = "<tr><th>unit</th>" + cols.map(c => `<th>${c}</th>`).join("") + "</tr>";
+  f.U.forEach((u,ui) => {
+    const cell = (fld,val) => {
+      const m = f.hl.find(x => x.t === "fu" && x.r === ui && x.f === fld);
+      return `<td class="${m ? "hl-"+m.c : ""}">${val}</td>`;
+    };
+    t += `<tr><td>${u.name}</td>` +
+         `<td>${u.busy ? "yes" : '<span class="muted">no</span>'}</td>` +
+         `<td>${u.op || ""}</td>` + cell("Fi", u.Fi ?? (u.busy ? "—" : "")) +
+         cell("Fj", u.Fj ?? "") + cell("Fk", u.Fk ?? "") +
+         `<td>${u.Qj ?? ""}</td><td>${u.Qk ?? ""}</td>` +
+         cell("Rj", u.busy ? (u.Rj ? "Y" : "N") : "") +
+         cell("Rk", u.busy ? (u.Rk ? "Y" : "N") : "") + "</tr>";
+  });
+  document.getElementById("fu").innerHTML = t;
+
+  /* register result status */
+  let r = "<tr>" + ex.regs.map(g => `<th>${g}</th>`).join("") + "</tr><tr>";
+  ex.regs.forEach(g => {
+    const m = f.hl.find(x => x.t === "rr" && x.reg === g);
+    r += `<td class="${m ? "hl-"+m.c : ""}">${f.Result[g] ?? ""}</td>`;
+  });
+  document.getElementById("rr").innerHTML = r + "</tr>";
+
+  /* instruction status */
+  let s = "<tr><th>instr</th><th>Issue</th><th>Read</th><th>Exec</th><th>Write</th></tr>";
+  ex.prog.forEach((p,i) => {
+    const x = f.st[i], live = x.issue !== null && x.write === null;
+    const ex1 = x.exec1 !== null && x.exec1 <= f.c ? x.exec1 : "";
+    s += `<tr class="${live ? "now" : ""}"><td>${p.txt}</td><td>${x.issue ?? ""}</td>` +
+         `<td>${x.read ?? ""}</td><td>${ex1}</td><td>${x.write ?? ""}</td></tr>`;
+  });
+  document.getElementById("is").innerHTML = s;
+
+  paintTimeline();
+}
+
+/* ---------- timeline ---------- */
+function buildTimeline(){
+  const ex = EXAMPLES[key], N = F.length;
+  let h = "<tr><th class='ins'></th>";
+  for (let c = 1; c <= N; c++) h += `<th>${c % 5 === 0 || c === 1 ? c : ""}</th>`;
+  h += "</tr>";
+  ex.prog.forEach((p,i) => {
+    h += `<tr><th class='ins'>${TAG(i)} ${p.txt}</th>`;
+    for (let c = 1; c <= N; c++) h += `<td data-i="${i}" data-c="${c}"></td>`;
+    h += "</tr>";
+  });
+  document.getElementById("tl").innerHTML = h;
+}
+
+function paintTimeline(){
+  const last = F[F.length-1], N = F.length;
+  document.querySelectorAll("#tl td").forEach(td => {
+    const i = +td.dataset.i, c = +td.dataset.c;
+    const s = last.st[i];
+    let cls = [];
+    if      (s.issue === c || s.read === c)          cls.push(s.issue === c ? "issue" : "read");
+    else if (s.exec0 !== null && c >= s.exec0 && c <= s.exec1) cls.push("exec");
+    else if (s.write === c)                          cls.push("write");
+    else {
+      /* a stall: find which hazard was named for this instruction in this cycle */
+      const fr = F[c-1];
+      const st = fr && fr.stalls.find(x => x.ins === i);
+      if (st) cls.push("w" + st.k);
+    }
+    if (c > F[cur-1].c) cls.push("future");
+    if (c === F[cur-1].c) cls.push("cursor");
+    td.className = cls.join(" ");
+  });
+}
+
+/* ---------- transport ---------- */
+function go(n){ cur = Math.max(1, Math.min(F.length, n)); render(); save(); }
+function play(on){
+  const b = document.getElementById("play");
+  if (timer){ clearInterval(timer); timer = null; }
+  if (on){
+    b.setAttribute("aria-pressed","true"); b.setAttribute("aria-label","Pause");
+    b.innerHTML = '<svg viewBox="0 0 16 16"><rect x="4" y="3" width="3" height="10"/><rect x="9" y="3" width="3" height="10"/></svg>';
+    timer = setInterval(() => { if (cur >= F.length) play(false); else go(cur+1); }, 700);
+  } else { b.setAttribute("aria-pressed","false"); b.setAttribute("aria-label","Play");
+    b.innerHTML = '<svg viewBox="0 0 16 16"><path d="M4.5 3 L4.5 13 L12 8 Z"/></svg>'; }
+}
+
+document.getElementById("exA").onclick = () => { play(false); build("A"); };
+document.getElementById("exB").onclick = () => { play(false); build("B"); };
+document.getElementById("first").onclick = () => { play(false); go(1); };
+document.getElementById("prev").onclick  = () => { play(false); go(cur-1); };
+document.getElementById("next").onclick  = () => { play(false); go(cur+1); };
+document.getElementById("last").onclick  = () => { play(false); go(F.length); };
+document.getElementById("play").onclick  = () => play(!timer);
+document.getElementById("slider").oninput = e => { play(false); go(+e.target.value); };
+
+addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT" && e.key !== " ") return;
+  if (e.key === "ArrowRight"){ play(false); go(cur+1); e.preventDefault(); }
+  else if (e.key === "ArrowLeft"){ play(false); go(cur-1); e.preventDefault(); }
+  else if (e.key === " "){ play(!timer); e.preventDefault(); }
+  else if (e.key === "Home"){ play(false); go(1); }
+  else if (e.key === "End"){ play(false); go(F.length); }
+  else if (e.key === "1"){ play(false); build("A"); }
+  else if (e.key === "2"){ play(false); build("B"); }
+});
+
+/* ---------- remember where you were ---------- */
+function save(){
+  try { localStorage.setItem("sbstep", JSON.stringify({key, cur})); } catch(_){}
+}
+let start = {key:"A", cur:1};
+try {
+  const v = JSON.parse(localStorage.getItem("sbstep") || "null");
+  if (v && EXAMPLES[v.key]) start = v;
+} catch(_){}
+build(start.key);
+go(start.cur);
+</script>
