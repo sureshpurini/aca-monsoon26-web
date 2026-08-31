@@ -39,6 +39,7 @@ DECKS=(
   "L2-tiny-processor:L4"
   "L3-drum-processor:L5"
   "L6-pipeline-hazards:L6"
+  "L7-scoreboarding:L7"
 )
 
 # Hand-written interactive worksheets: a single self-contained HTML checked into
