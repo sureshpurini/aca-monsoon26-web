@@ -17,7 +17,9 @@
 # They live at slides/L1.pdf and slides/L2.pdf and are NOT managed here — copy
 # a new version straight over them and commit.
 #
-# Also publishes the hand-written interactive worksheets (worksheets/<name>.html),
+# Also publishes the student-facing handout PDFs (handouts/<name>.pdf), built
+# with pdflatex in the course repo, and the hand-written interactive worksheets
+# (worksheets/<name>.html),
 # which have no build step -- they are checked into the lecture folder as one
 # self-contained file.
 #
@@ -107,6 +109,36 @@ for entry in "${WORKSHEETS[@]}"; do
   mkdir -p "$WDST"
   cp "$ws" "$WDST/$name.html"
   echo "publish: $folder/worksheet.html -> worksheets/$name.html ($(( $(wc -c < "$ws") / 1024 )) KB)"
+done
+
+
+# ---- handouts: student-facing PDFs authored in the course repo and built with
+# pdflatex.  Published under handouts/ so the site serves them directly, in
+# parallel with the copy in aca-monsoon26-labs that students clone.
+HANDOUTS=(
+  "project-matmul/mini-project/SPEC.pdf:mini-project-part1"
+)
+
+HDST="$WEB_DIR/handouts"
+for entry in "${HANDOUTS[@]}"; do
+  rel="${entry%%:*}"
+  name="${entry##*:}"
+  src="$SRC/$rel"
+
+  if [[ ! -f "$src" ]]; then
+    echo "skip: $rel (not built — run pdflatex in its folder)" >&2
+    continue
+  fi
+
+  # A PDF older than its own source is stale; say so rather than publishing silently.
+  tex="${src%.pdf}.tex"
+  if [[ -f "$tex" && "$tex" -nt "$src" ]]; then
+    echo "warn: $(basename "$src") is older than $(basename "$tex") — rerun pdflatex" >&2
+  fi
+
+  mkdir -p "$HDST"
+  cp "$src" "$HDST/$name.pdf"
+  echo "publish: $rel -> handouts/$name.pdf ($(( $(wc -c < "$src") / 1024 )) KB)"
 done
 
 echo
