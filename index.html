@@ -366,26 +366,28 @@
                     </div>
                 </li>
                 <li>
-                    <div class="rtitle">Lab 1 — A matrix multiply unit</div>
-                    <div class="rmeta">Build the accelerator itself, in BSV, before it goes anywhere
-                        near a CPU. The specification fixes what it computes and says almost nothing
-                        about how, because how is the assignment: you build several designs, measure
-                        each one for <em>cycles</em>, <em>area</em> and <em>logic depth</em>, and find
-                        that the three metrics pick three different winners. Then you argue for one of
-                        them against a stated priority. A correct starting design ships with the
-                        handout.</div>
+                    <div class="rtitle">Mini-project, Part 1 — The matrix-multiply unit</div>
+                    <div class="rmeta">Build the accelerator itself, in BSV, and then use it to compute
+                        a large matrix product. A 4×4×4 unit costs nine requests per tile and eight of
+                        them only move data, which fixes the arithmetic you get per instruction no
+                        matter what hardware you build underneath. So the design question is not how
+                        fast — it is how cheaply you can reach a limit you cannot beat. You build three
+                        designs, measure each for <em>cycles</em>, <em>area</em> and <em>logic
+                        depth</em>, and find that the three metrics pick three different winners. Then
+                        you argue for one of them against a stated priority. A correct starting design
+                        ships with the handout.</div>
                     <div class="links">
-                        <a href="https://github.com/sureshpurini/aca-monsoon26-labs/tree/master/lab1"
+                        <a href="https://github.com/sureshpurini/aca-monsoon26-labs/tree/master/mini-project"
                             target="_blank" rel="noopener">Handout →</a>
                     </div>
                 </li>
                 <li>
-                    <div class="rtitle">Mini-project — a matrix-multiply accelerator as a RISC-V
-                        extension</div>
-                    <div class="rmeta">Add a custom instruction to <strong>Fife</strong> and build the
-                        functional unit behind it. The interesting part is not the multiplier: it is what
-                        a multi-cycle unit does to an in-order pipeline — the same hazards L6 raises,
-                        met in hardware you wrote. The unit you designed in Lab 1 is what gets attached.
+                    <div class="rtitle">Mini-project, Part 2 — The accelerator as a RISC-V
+                        instruction</div>
+                    <div class="rmeta">Attach the unit you built in Part 1 to <strong>Fife</strong> as a custom
+                        instruction. The interesting part is not the multiplier: it is what a
+                        multi-cycle unit does to an in-order pipeline — the same hazards L6 raises, met
+                        in hardware you wrote.
                         <span class="pending">Specification announced later in the semester.</span></div>
                 </li>
             </ul>
