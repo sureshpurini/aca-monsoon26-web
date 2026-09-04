@@ -49,6 +49,7 @@ DECKS=(
 WORKSHEETS=(
   "L6-pipeline-hazards:L6"
   "L7-scoreboarding:L7"
+  "L8-tomasulo:L8"
 )
 
 BUILD=0
