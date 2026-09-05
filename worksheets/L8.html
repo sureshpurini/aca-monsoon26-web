@@ -209,7 +209,10 @@ table.cmp .big{font-size:15px; font-weight:700}
   font-family:"JetBrains Mono",monospace; white-space:nowrap; position:sticky; left:0;
   background:var(--card);
 }
-.tl td{width:17px; height:25px; border:1px solid var(--border); padding:0}
+/* A LETTER means work is happening; a bare COLOUR means waiting. */
+.tl td{width:23px; height:25px; border:1px solid var(--border); padding:0;
+       text-align:center; vertical-align:middle; font-family:Inter,sans-serif;
+       font-size:8px; font-weight:700; color:var(--ink)}
 .tl td.issue,.tl td.read{background:var(--tl-stage)}
 .tl td.exec {background:var(--tl-exec)}
 .tl td.write{background:var(--tl-write)}
@@ -244,6 +247,14 @@ ol.prog li.fin{color:var(--muted)}
 .only-sb,.only-rn,.only-tom{display:none}
 .rn-note{display:none}
 body[data-m="rn"] .rn-note{display:inline}
+/* Tomasulo has no Read Operands stage, so its chart never shows an Op cell.
+ * Hiding rather than showing, because `.legend span{display:flex}` out-specifies
+ * a bare `.tl-op{display:none}`. */
+body[data-m="tom"] .legend .tl-op{display:none}
+.tog{display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--muted);
+     border:1px solid var(--border); border-radius:7px; padding:4px 10px;
+     background:var(--panel); cursor:pointer; user-select:none}
+.tog input{accent-color:var(--accent); cursor:pointer; margin:0}
 body[data-m="sb"]  .only-sb,
 body[data-m="rn"]  .only-rn,
 body[data-m="tom"] .only-tom{display:block}
@@ -422,17 +433,23 @@ kbd{
   <div class="scroll"><table class="tl" id="tl"></table></div>
   <div class="legend">
     <span class="grp"><b>working</b>
-      <i class="sw" style="background:var(--tl-stage)"></i> issue / read
-      <i class="sw" style="background:var(--tl-exec)"></i> execute
-      <i class="sw" style="background:var(--tl-write)"></i> write</span>
+      <i class="sw" style="background:var(--tl-stage)"></i> <b>Is</b> issue
+      <span class="tl-op"><b>Op</b> read operands</span>
+      <i class="sw" style="background:var(--tl-exec)"></i> <b>E</b> execute
+      <i class="sw" style="background:var(--tl-write)"></i> <b>WB</b> write result</span>
     <span class="grp"><b>stalled</b>
       <i class="sw" style="background:var(--tl-raw)"></i> RAW
       <i class="sw" style="background:var(--tl-war)"></i> WAR
       <i class="sw" style="background:var(--tl-waw)"></i> WAW
-      <i class="sw" style="background:var(--tl-struct)"></i> structural
+      <i class="sw" style="background:var(--tl-struct)"></i> ST structural
       <i class="sw" style="background:var(--tl-cdb)"></i> CDB busy
-      <i class="sw" style="background:var(--tl-free)"></i> free list empty</span>
+      <i class="sw" style="background:var(--tl-free)"></i> FL free list</span>
+    <label class="tog"><input type="checkbox" id="stalltxt"> name the stalls in the chart</label>
   </div>
+  <p class="sub" style="margin:9px 0 0">A <b>letter</b> means work is happening in
+    that cycle; a bare <b>colour</b> means the instruction is waiting. Turn on
+    <em>name the stalls</em> to label the waiting cells too — useful on short runs,
+    noisy on a 40-cycle divide.</p>
 </div>
 
 <div class="card" style="margin-top:16px">
@@ -816,6 +833,9 @@ function build(){
 
 const TAG = i => `i${i+1}`;
 const STALLKINDS = ["RAW","WAR","WAW","STRUCT","CDB","FREELIST"];
+/* short enough to fit a chart cell; the legend spells ST and FL out */
+const STALLTAG = {RAW:"RAW", WAR:"WAR", WAW:"WAW", STRUCT:"ST", CDB:"CDB", FREELIST:"FL"};
+let stallTxt = false;
 
 function tally(frames){
   const t = {};
@@ -863,20 +883,25 @@ function render(){
 
 function renderSB(f, ex){
   /* functional unit status */
-  const cols = ["Busy","Op","Fi","Fj","Fk","Qj","Qk","Rj","Rk"];
+  const cols = ["Busy","Op","Fi","Fj","Fk","Qj","Qk","Rj","Rk","Time"];
   let t = "<tr><th>unit</th>" + cols.map(c => `<th>${c}</th>`).join("") + "</tr>";
   f.U.forEach((u,ui) => {
     const cell = (fld,val) => {
       const m = f.hl.find(x => x.t === "fu" && x.r === ui && x.f === fld);
       return `<td class="${m ? "hl-"+m.c : ""}">${val}</td>`;
     };
+    /* cycles of execution still to go; blank when not executing -- which covers
+     * both "has not read its operands yet" and "finished, waiting to write" */
+    const time = (u.busy && u.execDone !== null && u.execDone >= f.c)
+                 ? (u.execDone - f.c + 1) : "";
     t += `<tr><td>${u.name}</td>` +
          `<td>${u.busy ? "yes" : '<span class="muted">no</span>'}</td>` +
          `<td>${u.op || ""}</td>` + cell("Fi", u.Fi ?? (u.busy ? "—" : "")) +
          cell("Fj", u.Fj ?? "") + cell("Fk", u.Fk ?? "") +
          `<td>${u.Qj ?? ""}</td><td>${u.Qk ?? ""}</td>` +
          cell("Rj", u.busy ? (u.Rj ? "Y" : "N") : "") +
-         cell("Rk", u.busy ? (u.Rk ? "Y" : "N") : "") + "</tr>";
+         cell("Rk", u.busy ? (u.Rk ? "Y" : "N") : "") +
+         `<td>${time}</td>` + "</tr>";
   });
   document.getElementById("fu").innerHTML = t;
 
@@ -917,12 +942,18 @@ function renderSB(f, ex){
   }
 
   /* instruction status */
-  let s = "<tr><th>instr</th><th>Issue</th><th>Read</th><th>Exec</th><th>Write</th></tr>";
+  /* Exec start and Exec comp are separate columns on purpose: "Exec comp" is the
+   * column name in the published H&P and CS252 tables, so it still lines up
+   * against them, and a cell filled only when its cycle arrives reveals nothing
+   * about the future. */
+  let s = "<tr><th>instr</th><th>Issue</th><th>Read</th><th>Exec start</th>" +
+          "<th>Exec comp</th><th>Write</th></tr>";
   ex.prog.forEach((p,i) => {
     const x = f.st[i], live = x.issue !== null && x.write === null;
+    const e0 = x.exec0 !== null && x.exec0 <= f.c ? x.exec0 : "";
     const e1 = x.exec1 !== null && x.exec1 <= f.c ? x.exec1 : "";
     s += `<tr class="${live ? "now" : ""}"><td>${p.txt}</td><td>${x.issue ?? ""}</td>` +
-         `<td>${x.read ?? ""}</td><td>${e1}</td><td>${x.write ?? ""}</td></tr>`;
+         `<td>${x.read ?? ""}</td><td>${e0}</td><td>${e1}</td><td>${x.write ?? ""}</td></tr>`;
   });
   document.getElementById(mach === "rn" ? "is-rn" : "is-sb").innerHTML = s;
 }
@@ -949,12 +980,14 @@ function renderTom(f, ex){
   ex.regs.forEach(g => { r += `<td>${f.Result[g] ?? ""}</td>`; });
   document.getElementById("rr-tom").innerHTML = r + "</tr>";
 
-  let s = "<tr><th>instr</th><th>Issue</th><th>Exec comp</th><th>Write result</th></tr>";
+  let s = "<tr><th>instr</th><th>Issue</th><th>Exec start</th><th>Exec comp</th>" +
+          "<th>Write result</th></tr>";
   ex.prog.forEach((p,i) => {
     const x = f.st[i], live = x.issue !== null && x.write === null;
+    const e0 = x.exec0 !== null && x.exec0 <= f.c ? x.exec0 : "";
     const e1 = x.exec1 !== null && x.exec1 <= f.c ? x.exec1 : "";
     s += `<tr class="${live ? "now" : ""}"><td>${p.txt}</td><td>${x.issue ?? ""}</td>` +
-         `<td>${e1}</td><td>${x.write ?? ""}</td></tr>`;
+         `<td>${e0}</td><td>${e1}</td><td>${x.write ?? ""}</td></tr>`;
   });
   document.getElementById("is-tom").innerHTML = s;
 }
@@ -1017,18 +1050,20 @@ function paintTimeline(){
     const i = +td.dataset.i, c = +td.dataset.c;
     const s = last.st[i];
     const cls = [];
-    if (s.issue === c) cls.push("issue");
-    else if (s.read === c) cls.push("read");
-    else if (s.exec0 !== null && c >= s.exec0 && c <= s.exec1) cls.push("exec");
-    else if (s.write === c) cls.push("write");
+    let txt = "";
+    if (s.issue === c){ cls.push("issue"); txt = "Is"; }
+    else if (s.read === c){ cls.push("read"); txt = "Op"; }
+    else if (s.exec0 !== null && c >= s.exec0 && c <= s.exec1){ cls.push("exec"); txt = "E"; }
+    else if (s.write === c){ cls.push("write"); txt = "WB"; }
     else {
       const fr = F[c-1];
       const stl = fr && fr.stalls.find(x => x.ins === i);
-      if (stl) cls.push("w" + stl.k);
+      if (stl){ cls.push("w" + stl.k); if (stallTxt) txt = STALLTAG[stl.k]; }
     }
     if (c >  F[cur-1].c) cls.push("future");
     if (c === F[cur-1].c) cls.push("cursor");
     td.className = cls.join(" ");
+    td.textContent = txt;
   });
 }
 
@@ -1054,6 +1089,7 @@ document.getElementById("exA").onclick  = () => setEx("A");
 document.getElementById("exB").onclick  = () => setEx("B");
 document.getElementById("exC").onclick  = () => setEx("C");
 document.getElementById("nphys").onchange = e => { play(false); nphys = +e.target.value; build(); };
+document.getElementById("stalltxt").onchange = e => { stallTxt = e.target.checked; paintTimeline(); save(); };
 document.getElementById("first").onclick = () => { play(false); go(1); };
 document.getElementById("prev").onclick  = () => { play(false); go(cur-1); };
 document.getElementById("next").onclick  = () => { play(false); go(cur+1); };
@@ -1079,15 +1115,16 @@ addEventListener("keydown", e => {
 
 /* ---------- remember where you were ---------- */
 function save(){
-  try { localStorage.setItem("l8step", JSON.stringify({key, mach, nphys, cur})); } catch(_){}
+  try { localStorage.setItem("l8step", JSON.stringify({key, mach, nphys, cur, stallTxt})); } catch(_){}
 }
-let start = {key:"A", mach:"sb", nphys:16, cur:1};
+let start = {key:"A", mach:"sb", nphys:16, cur:1, stallTxt:false};
 try {
   const v = JSON.parse(localStorage.getItem("l8step") || "null");
   if (v && EXAMPLES[v.key] && MACHNAME[v.mach]) start = Object.assign(start, v);
 } catch(_){}
-key = start.key; mach = start.mach; nphys = start.nphys || 16;
+key = start.key; mach = start.mach; nphys = start.nphys || 16; stallTxt = !!start.stallTxt;
 document.getElementById("nphys").value = String(nphys);
+document.getElementById("stalltxt").checked = stallTxt;
 build();
 go(start.cur);
 </script>
