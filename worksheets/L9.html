@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reorder Buffer Stepper</title>
+<style>
+:root{--ink:#172033;--muted:#667085;--blue:#2d4a8a;--panel:#f5f7fb;--line:#d8deea;--green:#dff4e5;--greenink:#176b36;--teal:#d9f3f1;--red:#fde3e0;--gold:#fff0c9;--fade:#eef0f4;--violet:#eee5ff}
+*{box-sizing:border-box} body{margin:0;background:#fff;color:var(--ink);font:15px/1.42 Inter,system-ui,sans-serif}.wrap{max-width:1500px;margin:auto;padding:24px}h1{margin:0;color:var(--blue)}h2{font-size:18px;color:var(--blue);margin:0 0 8px}.lede{color:var(--muted);max-width:900px}.bar{position:sticky;top:0;z-index:4;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;box-shadow:0 3px 14px rgba(34,51,68,.12)}.seg{display:flex}.seg button,.transport button,select{border:1px solid var(--line);background:#fff;padding:7px 11px;font-weight:650;cursor:pointer}.seg button:first-child{border-radius:7px 0 0 7px}.seg button:last-child{border-radius:0 7px 7px 0}.seg button[aria-pressed=true]{background:var(--blue);color:#fff}.transport{display:flex;gap:4px}.transport button{border-radius:6px}.cycle{font-variant-numeric:tabular-nums;font-weight:700}.slider{flex:1;min-width:180px}.grid{display:grid;grid-template-columns:1fr 1.35fr;gap:14px;margin-top:14px}.card{border:1px solid var(--line);border-radius:10px;padding:14px;background:#fff;overflow:auto}.wide{grid-column:1/-1}.narrate{background:var(--panel);border-left:5px solid var(--blue)}table{border-collapse:collapse;width:100%;font-size:13px}th{background:var(--blue);color:white;text-align:left;position:sticky;top:0}th,td{padding:6px 8px;border:1px solid var(--line);white-space:nowrap}tr.head td{background:var(--green);color:var(--greenink);font-weight:700}tr.spec td{background:var(--fade);color:#6d7480}tr.flush td{text-decoration:line-through;background:var(--red);color:#8d3a32}.tag{display:inline-block;border-radius:12px;padding:2px 8px;font-size:12px;font-weight:700}.issue{background:#e1e9fb}.exec{background:var(--gold)}.wb{background:var(--teal)}.commit{background:var(--green)}.flush{background:var(--red)}.stall{background:var(--violet)}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}.note{color:var(--muted);font-size:13px}.onlyD{display:none}@media(max-width:900px){.grid{grid-template-columns:1fr}.wide{grid-column:auto}}
+</style></head><body><div class="wrap">
+<header><div class="note">CS2.501 Advanced Computer Architecture · Lecture 9</div><h1>Reorder Buffer Stepper</h1>
+<p class="lede">Execution may finish out of order. The ROB makes architectural state change in order. Step the same five instructions from L7/L8, then let a branch prediction be right or wrong.</p></header>
+<div class="bar">
+ <div class="seg"><button id="exA" aria-pressed="true">A · familiar five</button><button id="exD" aria-pressed="false">D · branch</button><button id="exM" aria-pressed="false">M · memory</button></div>
+ <div class="seg"><button id="mTom" aria-pressed="false">Tomasulo</button><button id="mRob" aria-pressed="true">+ ROB</button></div>
+ <label>ROB <select id="robSize"><option>4</option><option selected>8</option><option>16</option></select></label>
+ <label>trap <select id="trap"><option value="0">off</option><option value="1">on i1</option><option value="4">on i4</option></select></label>
+ <label class="onlyD">prediction <select id="pred"><option value="none">none — wait</option><option value="right">right</option><option value="wrong">wrong</option></select></label>
+ <div class="transport"><button id="first">|◀</button><button id="prev">◀</button><button id="play">▶</button><button id="next">▶</button><button id="last">▶|</button></div>
+ <input class="slider" id="slider" type="range" min="1" value="1"><span class="cycle">cycle <b id="cnum">1</b> / <span id="ctot"></span></span>
+</div>
+<div class="grid">
+ <div class="card narrate"><h2>This cycle</h2><div id="events"></div></div>
+ <div class="card"><h2>Program and instruction status</h2><div id="program"></div></div>
+ <div class="card"><h2>Reorder buffer</h2><p class="note">The arrow marks the head: the only entry allowed to commit. Grey entries are speculative.</p><div id="rob"></div></div>
+ <div class="card"><h2>Rename map / architectural state</h2><p class="note">The map points to the youngest in-flight producer. Architectural state changes only at commit.</p><div id="state"></div></div>
+ <div class="card wide"><h2>Load/store queue</h2><p class="note">A load checks older stores: wait for an unknown address, forward from the youngest matching address, or bypass known non-matches.</p><div id="lsq"></div></div>
+ <div class="card wide"><h2>The whole run</h2><div id="timeline"></div></div>
+ <div class="card wide"><h2>Compare policies</h2><div id="compare"></div></div>
+</div>
+<p class="note"><b>Convention:</b> decisions use state at the start of a cycle. Results produced in cycle n are consumed no earlier than n+1. Exceptions are detected at execution but taken only when the faulting entry reaches the ROB head. Stores update memory only at commit.</p>
+</div>
+<script>
+"use strict";
+/* SIMULATOR_START */
+const L9SIM = (() => {
+const EXAMPLES={
+ A:[
+  {id:1,text:"fdiv.d f0, f2, f4",op:"div",dst:"f0",src:[],lat:12},
+  {id:2,text:"fadd.d f6, f0, f8",op:"add",dst:"f6",src:["f0"],lat:2},
+  {id:3,text:"fsd f6, 0(x1)",op:"store",dst:null,src:["f6"],lat:2},
+  {id:4,text:"fsub.d f8, f10, f14",op:"add",dst:"f8",src:[],lat:2},
+  {id:5,text:"fmul.d f6, f10, f8",op:"mul",dst:"f6",src:["f8"],lat:10}
+ ],
+ D:[
+  {id:1,text:"fdiv.d f0, f2, f4",op:"div",dst:"f0",src:[],lat:12},
+  {id:2,text:"feq.d x5, f0, f6",op:"int",dst:"x5",src:["f0"],lat:1},
+  {id:3,text:"bne x5, x0, skip",op:"branch",dst:null,src:["x5"],lat:1,branch:true},
+  {id:4,text:"fadd.d f8, f10, f12",op:"add",dst:"f8",src:[],lat:2,afterBranch:true},
+  {id:5,text:"fmul.d f14, f10, f12",op:"mul",dst:"f14",src:[],lat:10,afterBranch:true}
+ ],
+ M:[
+  {id:1,text:"fdiv.d f0, f2, f4",op:"div",dst:"f0",src:[],lat:12},
+  {id:2,text:"fsd f8, 0(x1)",op:"store",dst:null,src:[],lat:2,mem:"S",addr:"x1+0"},
+  {id:3,text:"fld f6, 0(x1)",op:"load",dst:"f6",src:[],lat:2,mem:"L",addr:"x1+0"},
+  {id:4,text:"fadd.d f10, f6, f12",op:"add",dst:"f10",src:["f6"],lat:2}
+ ]};
+const CAP={div:1,add:2,mul:2,int:1,branch:1,store:1,load:1};
+function simulate(key,opt={}){
+ const robMode=opt.rob!==false, size=+(opt.robSize||8), pred=opt.prediction||"right", trap=+(opt.trap||0);
+ const I=EXAMPLES[key].map(x=>Object.assign({},x,{issue:0,execStart:0,execDone:0,wb:0,commit:0,ready:false,flushed:false,wrongPath:key==="D"&&pred==="wrong"&&!!x.afterBranch,deps:[]}));
+ let pc=0,cycle=0,map={},producer={},rob=[],eventsBy=[],branchResolved=false,stopped=false;
+ const snapshots=[];
+ while(cycle++<200){
+  const ev=[];
+  // Commit/take exception from state visible at start of cycle.
+  if(robMode){
+   const h=rob.find(e=>!e.retired&&!e.flushed);
+   if(h&&h.ready&&I[h.idx].wb<cycle){
+    const ins=I[h.idx];
+    if(ins.id===trap){ ev.push(`TRAP taken at head #${h.slot}; flush i${ins.id} and all younger entries`); ins.flushed=true;ins.flushCycle=cycle;h.flushed=true;for(const e of rob)if(e.idx>h.idx&&!e.retired){e.flushed=true;I[e.idx].flushed=true;I[e.idx].flushCycle=cycle}map={};stopped=true; }
+    else {h.retired=true;ins.commit=cycle;ev.push(`COMMIT i${ins.id}${ins.op==="store"?" — memory changes now":" — architectural state changes now"}`); if(ins.dst&&map[ins.dst]===h.slot)delete map[ins.dst];}
+   }
+  }
+  // Write one oldest completed result on the CDB.
+  const wbq=I.filter(x=>x.execDone&&x.execDone<cycle&&!x.wb&&!x.flushed).sort((a,b)=>a.id-b.id);
+  if(wbq.length){const x=wbq[0];x.wb=cycle;x.ready=true;const e=rob.find(e=>e.idx===I.indexOf(x));if(e)e.ready=true;ev.push(`WB i${x.id}${robMode?` into ROB #${e.slot}`:" into architectural state"}`);
+   if(x.branch){branchResolved=true;if(pred==="wrong"){
+    ev.push("MISPREDICT — restore rename checkpoint, flush younger entries, and fetch the correct path");
+    for(const e2 of rob)if(e2.idx>I.indexOf(x)&&!e2.retired){e2.flushed=true;I[e2.idx].flushed=true;I[e2.idx].flushCycle=cycle}
+    for(const y of I)if(y.id>x.id){y.flushed=true;y.flushCycle=cycle}
+    map={}; for(const e2 of rob)if(!e2.flushed&&!e2.retired){const d=I[e2.idx].dst;if(d)map[d]=e2.slot}
+    const correct=EXAMPLES.D.slice(3).map((z,k)=>Object.assign({},z,{id:6+k,text:z.text+" [correct path]",afterBranch:false,issue:0,execStart:0,execDone:0,wb:0,commit:0,ready:false,flushed:false,wrongPath:false,deps:[]}));
+    I.push(...correct); pc=5;
+   }}
+  }
+  // Start ready instructions if a functional unit is available.
+  const active={};for(const x of I)if(x.execStart&&!x.execDone)active[x.op]=(active[x.op]||0)+1;
+  for(const x of I){if(!x.issue||x.execStart||x.flushed)continue;const depsReady=x.deps.every(d=>I[d].wb&&I[d].wb<cycle);let memReady=true,forward=0;if(x.op==="load"){const older=I.filter(y=>y.id<x.id&&y.op==="store"&&y.issue&&!y.flushed);const match=older.filter(y=>y.addr===x.addr).at(-1);if(match&&(!match.wb||match.wb>=cycle)){memReady=false;ev.push(`LSQ holds i${x.id} — older matching store i${match.id} has no data yet`)}else if(match)forward=match.id;}if(depsReady&&memReady&&(active[x.op]||0)<CAP[x.op]){x.execStart=cycle;x.execDone=cycle+x.lat-1;x.forwardedFrom=forward;active[x.op]=(active[x.op]||0)+1;ev.push(`EXEC i${x.id} starts; completes ${x.execDone}${forward?` — forwards from older store i${forward}`:""}${x.id===trap?" (exception will be detected)":""}`);}}
+  // Detect exceptions at execution completion; commit logic takes them later.
+  for(const x of I)if(x.id===trap&&x.execDone===cycle)ev.push(robMode
+    ? `exception detected on i${x.id}; recorded in its ROB entry, not taken yet`
+    : `exception detected on i${x.id}; no precise boundary exists — younger results may already be architectural`);
+  // Issue one instruction.
+  if(!stopped&&pc<I.length){const x=I[pc];const live=rob.filter(e=>!e.retired&&!e.flushed).length;const branchWall=key==="D"&&pred==="none"&&pc>2&&!branchResolved;
+   if(robMode&&live>=size)ev.push("ISSUE stalls — ROB full");
+   else if(branchWall)ev.push("ISSUE stalls — unresolved branch and speculation disabled");
+   else {x.issue=cycle;x.deps=x.src.map(s=>producer[s]).filter(v=>v!==undefined);let slot=0;if(robMode){slot=(rob.length%size)+1;rob.push({slot,idx:pc,ready:false,retired:false,flushed:false,spec:key==="D"&&pc>2&&!branchResolved});if(x.dst)map[x.dst]=slot;}if(x.dst)producer[x.dst]=pc;x.robSlot=slot;ev.push(`ISSUE i${x.id}${robMode?` → ROB #${slot}`:""}`);pc++;}
+  }
+  snapshots.push({cycle,events:ev.slice(),rob:rob.map(e=>Object.assign({},e)),map:Object.assign({},map)});eventsBy.push(ev);
+  if(!robMode){for(const x of I)if(x.wb&&!x.commit&&!x.flushed)x.commit=x.wb;}
+  const live=robMode?rob.some(e=>!e.retired&&!e.flushed):I.some(x=>!x.wb&&!x.flushed);
+  if((pc>=I.length||stopped)&&!live)break;
+ }
+ return {key,robMode,pred,trap,instructions:I,snapshots,eventsBy,cycles:snapshots.length};
+}
+return {EXAMPLES,simulate};})();
+/* SIMULATOR_END */
+
+let key="A",robMode=true,cur=1,timer=null,run;
+const $=id=>document.getElementById(id), esc=s=>String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+function options(){return {rob:robMode,robSize:+$("robSize").value,trap:+$("trap").value,prediction:$("pred").value}}
+function restart(){run=L9SIM.simulate(key,options());cur=1;$("slider").max=run.cycles;$("ctot").textContent=run.cycles;document.querySelectorAll(".onlyD").forEach(x=>x.style.display=key==="D"?"inline-flex":"none");render()}
+function stage(i,c){if(i.flushed&&c>=i.flushCycle)return '<span class="tag flush">FLUSH</span>';if(i.commit&&c>=i.commit)return '<span class="tag commit">commit</span>';if(i.wb&&c>=i.wb)return '<span class="tag wb">written</span>';if(i.execStart&&c>=i.execStart)return '<span class="tag exec">execute</span>';if(i.issue&&c>=i.issue)return '<span class="tag issue">issued</span>';return "—"}
+function render(){const s=run.snapshots[cur-1];$("cnum").textContent=cur;$("slider").value=cur;$("events").innerHTML=s.events.length?s.events.map(e=>`<div>${e}</div>`).join(""):"<i>Nothing changes state.</i>";
+ $("program").innerHTML='<table><tr><th>i</th><th>instruction</th><th>Issue</th><th>Exec</th><th>WB</th><th>Commit</th><th>now</th></tr>'+run.instructions.map(i=>`<tr class="${i.flushed&&cur>=i.flushCycle?'flush':''}"><td>i${i.id}</td><td><code>${esc(i.text)}</code></td><td>${i.issue||''}</td><td>${i.execStart?i.execStart+'–'+i.execDone:''}</td><td>${i.wb||''}</td><td>${i.commit||''}</td><td>${stage(i,cur)}</td></tr>`).join('')+'</table>';
+ const live=s.rob.filter(e=>{const ins=run.instructions[e.idx];return ins.issue<=cur});const h=live.find(e=>!e.retired&&!e.flushed);$("rob").innerHTML=!robMode?'<p>Plain Tomasulo has no retirement queue. Writeback changes architectural state immediately.</p>':'<table><tr><th></th><th>#</th><th>instruction</th><th>ready</th><th>state</th></tr>'+live.map(e=>{const i=run.instructions[e.idx];return `<tr class="${e.flushed?'flush':e.spec&&!e.retired?'spec':h===e?'head':''}"><td>${h===e?'→ head':''}</td><td>#${e.slot}</td><td>i${i.id} ${esc(i.text)}</td><td>${e.ready?'yes':'no'}</td><td>${e.flushed?'flushed':e.retired?'committed':e.spec?'speculative':'in flight'}</td></tr>`}).join('')+'</table>';
+ $("state").innerHTML='<b>Rename map:</b> '+(Object.entries(s.map).map(([a,b])=>`${a}→#${b}`).join(' · ')||'empty')+'<p><b>Architecturally visible:</b> '+(run.instructions.filter(i=>i.commit&&i.commit<=cur).map(i=>`i${i.id}`).join(', ')||'none')+'</p>';
+ const mem=run.instructions.filter(i=>i.mem&&i.issue<=cur);$("lsq").innerHTML=mem.length?'<table><tr><th>age</th><th>op</th><th>address</th><th>execution</th><th>memory action</th></tr>'+mem.map(i=>`<tr class="${i.flushed&&cur>=i.flushCycle?'flush':''}"><td>i${i.id}</td><td>${i.mem}</td><td><code>${i.addr}</code></td><td>${!i.execStart||cur<i.execStart?'waiting':i.forwardedFrom?`forwarded from i${i.forwardedFrom}`:cur<=i.execDone?'executing':'complete'}</td><td>${i.op==='store'?(i.commit&&cur>=i.commit?'store committed to memory':'not visible to memory'):(i.wb&&cur>=i.wb?'load value ready':'pending')}</td></tr>`).join('')+'</table>':'<p>No memory operations in this example. Choose <b>M · memory</b>.</p>';
+ const N=run.cycles;$("timeline").innerHTML='<table><tr><th>instruction</th>'+Array.from({length:N},(_,i)=>`<th>${i+1}</th>`).join('')+'</tr>'+run.instructions.map(x=>'<tr><td>i'+x.id+'</td>'+Array.from({length:N},(_,j)=>{const c=j+1;let z='';if(x.flushed&&c>=x.flushCycle)z='FLU';else if(x.commit===c)z='C';else if(x.wb===c)z='WB';else if(x.execStart&&c>=x.execStart&&c<=x.execDone)z='E';else if(x.issue===c)z='Is';return `<td class="${z==='C'?'commit':z==='WB'?'wb':z==='E'?'exec':z==='FLU'?'flush':''}">${z}</td>`}).join('')+'</tr>').join('')+'</table>';
+ const modes=key==='D'?[['wait',{rob:true,robSize:8,prediction:'none'}],['right',{rob:true,robSize:8,prediction:'right'}],['wrong',{rob:true,robSize:8,prediction:'wrong'}]]:[['Tomasulo',{rob:false}],['+ ROB',{rob:true,robSize:8}]];$("compare").innerHTML='<table><tr><th>policy</th><th>cycles</th><th>committed</th><th>flushed</th></tr>'+modes.map(([n,o])=>{const r=L9SIM.simulate(key,o);return `<tr><td>${n}</td><td>${r.cycles}</td><td>${r.instructions.filter(i=>i.commit).length}</td><td>${r.instructions.filter(i=>i.flushed).length}</td></tr>`}).join('')+'</table>';
+}
+function pressed(id,on){$(id).setAttribute('aria-pressed',on)}
+function choose(k){key=k;for(const x of ['A','D','M'])pressed('ex'+x,x===k);restart()}$("exA").onclick=()=>choose('A');$("exD").onclick=()=>choose('D');$("exM").onclick=()=>choose('M');$("mTom").onclick=()=>{robMode=false;pressed('mTom',1);pressed('mRob',0);restart()};$("mRob").onclick=()=>{robMode=true;pressed('mTom',0);pressed('mRob',1);restart()};
+for(const id of ['robSize','trap','pred'])$(id).onchange=restart;$("slider").oninput=e=>{cur=+e.target.value;render()};$("first").onclick=()=>{cur=1;render()};$("last").onclick=()=>{cur=run.cycles;render()};$("prev").onclick=()=>{cur=Math.max(1,cur-1);render()};$("next").onclick=()=>{cur=Math.min(run.cycles,cur+1);render()};$("play").onclick=()=>{if(timer){clearInterval(timer);timer=null;$("play").textContent='▶'}else{timer=setInterval(()=>{if(cur>=run.cycles){clearInterval(timer);timer=null;$("play").textContent='▶'}else{cur++;render()}},500);$("play").textContent='Ⅱ'}};restart();
+</script></body></html>
