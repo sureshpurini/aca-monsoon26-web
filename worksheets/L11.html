@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>L11 worksheet — build the schedule</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1a1a2e; --muted:#5b5b6b; --accent:#2d4a8a; --accent2:#b03a2e;
+  --bg:#ffffff; --panel:#f4f6fb; --border:#d7dbe6; --faded:#c9c9d2;
+  --green:#2e7d32; --green-f:#dfeede; --red-f:#f6ddd8; --gold:#b8860b;
+  --gold-f:#fff3d6; --slate:#475569; --slate-f:#e4e8ef;
+  --st-ld:#cfe0f6; --st-add:#a9c6ee; --st-sd:#7ea7e0; --st-edge:#3c6db0;
+  --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+     font-size:15px;line-height:1.5}
+.wrap{max-width:1240px;margin:0 auto;padding:22px 20px 60px}
+h1{font-size:1.5rem;color:var(--accent);margin:0 0 2px}
+h1 small{display:block;font-size:.95rem;font-weight:400;color:var(--muted);margin-top:4px}
+h2{font-size:1.05rem;color:var(--accent);border-bottom:2px solid var(--border);
+   padding-bottom:6px;margin:26px 0 12px}
+code,kbd{font-family:var(--mono)}
+.machine{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 6px}
+.machine .u{border:1px solid var(--border);background:var(--panel);border-radius:6px;
+   padding:6px 10px;font-size:.8rem}
+.machine .u b{font-family:var(--mono);color:var(--accent)}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:18px 0 4px}
+.tab{border:1px solid var(--border);background:var(--panel);border-radius:6px 6px 0 0;
+  padding:8px 14px;cursor:pointer;font-size:.86rem;font-weight:600;color:var(--muted)}
+.tab.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.exhead{background:var(--panel);border:1px solid var(--border);border-radius:0 8px 8px 8px;
+  padding:12px 16px;margin-bottom:14px}
+.exhead .goal{font-size:.88rem;color:var(--muted);margin-top:4px}
+.cols{display:grid;grid-template-columns:270px 1fr;gap:18px;align-items:start}
+@media(max-width:940px){.cols{grid-template-columns:1fr}}
+.pool{border:1px solid var(--border);border-radius:8px;padding:10px;background:#fff}
+.pool h3{margin:0 0 8px;font-size:.82rem;text-transform:uppercase;letter-spacing:.04em;
+  color:var(--muted)}
+.op{font-family:var(--mono);font-size:.78rem;border:1px solid var(--border);
+  border-radius:5px;padding:6px 8px;margin-bottom:5px;cursor:grab;background:var(--panel);
+  display:flex;justify-content:space-between;gap:6px;align-items:center}
+.op:hover{border-color:var(--accent)}
+.op.sel{border-color:var(--accent2);background:var(--red-f);box-shadow:0 0 0 2px var(--red-f)}
+.op.done{opacity:.35;cursor:default;text-decoration:line-through}
+.op .stg{font-size:.62rem;font-family:var(--sans);font-weight:700;padding:1px 5px;
+  border-radius:3px;background:var(--st-ld);color:var(--ink)}
+.op .stg{white-space:nowrap}
+.op .stg.s1{background:var(--st-add)}
+.op .stg.s2{background:var(--st-sd);color:#12233d}
+.gridwrap{overflow-x:auto}
+table.grid{border-collapse:collapse;font-family:var(--mono);font-size:.74rem;width:100%}
+table.grid th{background:var(--accent);color:#fff;padding:6px 4px;font-family:var(--sans);
+  font-size:.74rem;font-weight:700}
+table.grid th.cy{background:var(--slate);width:38px}
+table.grid td{border:1px solid var(--border);padding:0;height:40px;min-width:120px}
+table.grid td.cy{background:var(--panel);text-align:center;color:var(--muted);
+  font-family:var(--sans);font-size:.74rem;min-width:38px;width:38px}
+.cell{width:100%;height:100%;min-height:34px;display:flex;align-items:center;
+  justify-content:center;cursor:pointer;padding:2px 4px;text-align:center;
+  line-height:1.15;flex-direction:column;gap:1px}
+.celltag{font-family:var(--sans);font-size:.68rem;font-weight:700;color:var(--ink);
+  opacity:.85}
+.cell.empty{background:repeating-linear-gradient(45deg,#fff,#fff 6px,#fafbfe 6px,#fafbfe 12px)}
+.cell.empty:hover{background:var(--gold-f)}
+.cell.ok{background:var(--green-f);border-left:3px solid var(--green)}
+.cell.locked{background:var(--slate-f);color:var(--slate);cursor:not-allowed}
+.cell.bad{background:var(--red-f);border-left:3px solid var(--accent2)}
+.cell.st0{background:var(--st-ld);border-left:3px solid var(--st-edge)}
+.cell.st1{background:var(--st-add);border-left:3px solid var(--st-edge)}
+.cell.st2{background:var(--st-sd);border-left:3px solid var(--st-edge)}
+.cell.dis{cursor:not-allowed;opacity:.55}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+button{font-family:var(--sans);font-size:.82rem;font-weight:600;padding:7px 13px;
+  border-radius:6px;border:1px solid var(--accent);background:#fff;color:var(--accent);
+  cursor:pointer}
+button:hover{background:var(--accent);color:#fff}
+button.warn{border-color:var(--accent2);color:var(--accent2)}
+button.warn:hover{background:var(--accent2);color:#fff}
+.msg{border-radius:6px;padding:10px 13px;margin:12px 0;font-size:.86rem;
+  border-left:4px solid var(--border);background:var(--panel);min-height:42px}
+.msg.err{border-left-color:var(--accent2);background:var(--red-f)}
+.msg.good{border-left-color:var(--green);background:var(--green-f)}
+.msg .rule{font-size:.74rem;color:var(--muted);display:block;margin-top:5px}
+.msg code{background:#fff;padding:1px 4px;border-radius:3px;border:1px solid var(--border)}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:10px;
+  margin:14px 0}
+.metric{border:1px solid var(--border);border-radius:8px;padding:9px 12px;background:#fff}
+.metric .k{font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.metric .v{font-size:1.24rem;font-weight:700;font-family:var(--mono);margin-top:2px}
+.metric.hit{background:var(--green-f);border-color:var(--green)}
+.metric.hit .v{color:var(--green)}
+.note{font-size:.82rem;color:var(--muted);margin:10px 0}
+.note b{color:var(--ink)}
+details{border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin:14px 0;
+  background:var(--panel)}
+summary{cursor:pointer;font-weight:600;font-size:.88rem;color:var(--accent)}
+details div{font-size:.85rem;margin-top:8px}
+footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--border);
+  font-size:.76rem;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Lecture 11 — build the schedule yourself
+  <small>Machine V has no interlocks. If you place an operation before its input has
+  landed, the machine will not stall for you — it will read the old value. This
+  worksheet refuses those placements and tells you which rule you broke.</small>
+</h1>
+
+<div class="machine" id="machine"></div>
+
+<div class="tabs" id="tabs"></div>
+<div class="exhead">
+  <div><b id="exname"></b> — <span id="exsub"></span></div>
+  <div class="goal" id="exgoal"></div>
+</div>
+
+<div class="cols">
+  <div class="pool">
+    <h3>Operations to place</h3>
+    <div id="pool"></div>
+    <div class="note" id="poolnote"></div>
+  </div>
+  <div>
+    <div class="gridwrap"><table class="grid" id="grid"></table></div>
+    <div class="bar">
+      <button id="undo">Undo</button>
+      <button id="clear">Clear</button>
+      <button class="warn" id="solve">Show a correct schedule</button>
+    </div>
+    <div class="msg" id="msg">Pick an operation on the left, then click the slot you want it in.</div>
+    <div class="metrics" id="metrics"></div>
+  </div>
+</div>
+
+<details>
+  <summary>The rules this worksheet enforces</summary>
+  <div>
+    <p><b>1 — one operation per unit per cycle.</b> A word has one <code>FP+</code>,
+    one <code>FPx</code>, two memory units and two integer units. An operation may
+    only issue in a slot of the right kind.</p>
+    <p><b>2 — a result is readable exactly <i>L</i> cycles after it issues.</b>
+    Integer 1, load 3, FP 4. A consumer placed earlier than that reads the previous
+    value of the register. The hardware does not check, so this worksheet does.</p>
+    <p><b>3 — in the kernel, the producer ran on the previous trip.</b> The kernel
+    repeats every II cycles, so a value produced at cycle <i>p</i> of one trip is
+    read at cycle <i>c</i> of the next: the real distance is
+    <code>c + II − p</code>, and that is what must cover the latency.</p>
+    <p>Loop control (<code>addi</code>, <code>bne</code>) is placed for you, with the
+    memory offsets already repaired, so you can concentrate on the dependence chain.</p>
+  </div>
+</details>
+
+<footer>
+  Advanced Computer Architecture · Monsoon 2026 · IIIT · Suresh Purini —
+  companion to Lecture 11. Every target figure here is reproduced by
+  <code>assets/schedules.py</code> and by <code>worksheet-report.js --validate</code>.
+</footer>
+</div>
+
+<script>
+/* ===================== SHARED MODEL: START =====================
+   worksheet-report.js lifts everything between this marker and
+   "SHARED MODEL: END" out of this file and runs it, so the instructor's
+   validator and the students' worksheet cannot drift apart. Keep both
+   marker lines verbatim.                                              */
+const MACHINE = {
+  slots: ["Int1", "Int2", "M1", "M2", "FP+", "FPx"],
+  unitOf: { int: ["Int1", "Int2"], mem: ["M1", "M2"], fadd: ["FP+"], fmul: ["FPx"] },
+  lat:    { int: 1, mem: 3, fadd: 4, fmul: 4 },
+  kindName: { int: "an integer unit", mem: "a memory unit",
+              fadd: "the FP adder", fmul: "the FP multiplier" }
+};
+
+/* Each op:  {id, text, kind, srcs:[{reg, from, dist}], stage}
+   `from` is the id of the producing op, or null for a value that is already in
+   the register on entry.  `dist` is how many kernel trips earlier that producer
+   ran (0 everywhere except the software-pipelined kernel).                    */
+const EXAMPLES = {
+A: {
+  name: "A — the loop as written",
+  sub: "one source iteration, six operations, six slots",
+  goal: "Place the three FP/memory operations as early as the rules allow. " +
+        "How few cycles can one iteration take?",
+  cycles: 9, iters: 1, flops: 1, II: null,
+  bound: { resmii: 1.5, recmii: 1, ii: 1.5, best: 8,
+           why: "3 integer ops / 2 integer units = 1.5 — the loop overhead binds" },
+  locked: {
+    "a1": [1, "Int1"], "a2": [2, "Int1"], "b": [8, "Int1"]
+  },
+  ops: [
+    { id: "a1", text: "addi x1,x1,8",    kind: "int",  srcs: [] },
+    { id: "a2", text: "addi x2,x2,8",    kind: "int",  srcs: [] },
+    { id: "b",  text: "bne x1,x3,loop",  kind: "int",  srcs: [] },
+    { id: "ld", text: "fld f1,0(x1)",    kind: "mem",  srcs: [] },
+    { id: "ad", text: "fadd.d f2,f0,f1", kind: "fadd",
+      srcs: [{ reg: "f1", from: "ld", dist: 0 }] },
+    { id: "sd", text: "fsd f2,-8(x2)",   kind: "mem",
+      srcs: [{ reg: "f2", from: "ad", dist: 0 }] }
+  ],
+  solution: { ld: [1, "M1"], ad: [4, "FP+"], sd: [8, "M1"] }
+},
+
+B: {
+  name: "B — unrolled four times",
+  sub: "four source iterations per trip, fifteen operations",
+  goal: "Twelve operations to place. Loads first, then adds, then stores — " +
+        "and watch what the single FP adder does to the tail.",
+  cycles: 12, iters: 4, flops: 4, II: null,
+  bound: { resmii: 4, recmii: 1, ii: 1.0, best: 11,
+           why: "8 memory ops / 2 units = 4, and 4 adds / 1 adder = 4" },
+  locked: { "a1": [3, "Int1"], "a2": [3, "Int2"], "b": [11, "Int1"] },
+  ops: [
+    { id: "a1", text: "addi x1,x1,32",   kind: "int", srcs: [] },
+    { id: "a2", text: "addi x2,x2,32",   kind: "int", srcs: [] },
+    { id: "b",  text: "bne x1,x3,loop",  kind: "int", srcs: [] },
+    { id: "l0", text: "fld f4,0(x1)",    kind: "mem", srcs: [] },
+    { id: "l1", text: "fld f5,8(x1)",    kind: "mem", srcs: [] },
+    { id: "l2", text: "fld f6,16(x1)",   kind: "mem", srcs: [] },
+    { id: "l3", text: "fld f7,24(x1)",   kind: "mem", srcs: [] },
+    { id: "d0", text: "fadd.d f8,f0,f4",  kind: "fadd", srcs: [{ reg: "f4", from: "l0", dist: 0 }] },
+    { id: "d1", text: "fadd.d f9,f0,f5",  kind: "fadd", srcs: [{ reg: "f5", from: "l1", dist: 0 }] },
+    { id: "d2", text: "fadd.d f10,f0,f6", kind: "fadd", srcs: [{ reg: "f6", from: "l2", dist: 0 }] },
+    { id: "d3", text: "fadd.d f11,f0,f7", kind: "fadd", srcs: [{ reg: "f7", from: "l3", dist: 0 }] },
+    { id: "s0", text: "fsd f8,-32(x2)",  kind: "mem", srcs: [{ reg: "f8",  from: "d0", dist: 0 }] },
+    { id: "s1", text: "fsd f9,-24(x2)",  kind: "mem", srcs: [{ reg: "f9",  from: "d1", dist: 0 }] },
+    { id: "s2", text: "fsd f10,-16(x2)", kind: "mem", srcs: [{ reg: "f10", from: "d2", dist: 0 }] },
+    { id: "s3", text: "fsd f11,-8(x2)",  kind: "mem", srcs: [{ reg: "f11", from: "d3", dist: 0 }] }
+  ],
+  solution: {
+    l0: [1, "M1"], l1: [1, "M2"], l2: [2, "M1"], l3: [2, "M2"],
+    d0: [4, "FP+"], d1: [5, "FP+"], d2: [6, "FP+"], d3: [7, "FP+"],
+    s0: [8, "M1"], s1: [9, "M1"], s2: [10, "M1"], s3: [11, "M1"]
+  }
+},
+
+C: {
+  name: "C — the software-pipelined kernel",
+  sub: "four cycles; three source-iteration groups in flight at once",
+  goal: "Only four cycles, and this is trip 2: the loads are for iterations 8–11, " +
+        "the adds for 4–7, the stores for 0–3. Every producer therefore ran one " +
+        "whole trip — four cycles — before its consumer.",
+  cycles: 4, iters: 4, flops: 4, II: 4,
+  bound: { resmii: 4, recmii: 1, ii: 1.0, best: 4,
+           why: "8 memory ops / 2 units = 4, and 4 adds / 1 adder = 4" },
+  locked: { "a1": [3, "Int1"], "b": [4, "Int1"], "a2": [4, "Int2"] },
+  ops: [
+    { id: "b",  text: "bne x1,x3,loop", kind: "int", srcs: [] },
+    { id: "a1", text: "addi x1,x1,32",  kind: "int", srcs: [] },
+    { id: "a2", text: "addi x2,x2,32",  kind: "int", srcs: [] },
+    { id: "l0", text: "fld f4,0(x1)",   kind: "mem", srcs: [], stage: 0, iter: 8 },
+    { id: "l1", text: "fld f5,8(x1)",   kind: "mem", srcs: [], stage: 0, iter: 9 },
+    { id: "l2", text: "fld f6,16(x1)",  kind: "mem", srcs: [], stage: 0, iter: 10 },
+    { id: "l3", text: "fld f7,-8(x1)",  kind: "mem", srcs: [], stage: 0, iter: 11 },
+    { id: "d0", text: "fadd.d f8,f0,f4",  kind: "fadd", stage: 1, iter: 4, srcs: [{ reg: "f4", from: "l0", dist: 1 }] },
+    { id: "d1", text: "fadd.d f9,f0,f5",  kind: "fadd", stage: 1, iter: 5, srcs: [{ reg: "f5", from: "l1", dist: 1 }] },
+    { id: "d2", text: "fadd.d f10,f0,f6", kind: "fadd", stage: 1, iter: 6, srcs: [{ reg: "f6", from: "l2", dist: 1 }] },
+    { id: "d3", text: "fadd.d f11,f0,f7", kind: "fadd", stage: 1, iter: 7, srcs: [{ reg: "f7", from: "l3", dist: 1 }] },
+    { id: "s0", text: "fsd f8,0(x2)",   kind: "mem", stage: 2, iter: 0, srcs: [{ reg: "f8",  from: "d0", dist: 1 }] },
+    { id: "s1", text: "fsd f9,8(x2)",   kind: "mem", stage: 2, iter: 1, srcs: [{ reg: "f9",  from: "d1", dist: 1 }] },
+    { id: "s2", text: "fsd f10,16(x2)", kind: "mem", stage: 2, iter: 2, srcs: [{ reg: "f10", from: "d2", dist: 1 }] },
+    { id: "s3", text: "fsd f11,24(x2)", kind: "mem", stage: 2, iter: 3, srcs: [{ reg: "f11", from: "d3", dist: 1 }] }
+  ],
+  solution: {
+    l0: [1, "M1"], l1: [2, "M1"], l2: [3, "M1"], l3: [4, "M1"],
+    s0: [1, "M2"], s1: [2, "M2"], s2: [3, "M2"], s3: [4, "M2"],
+    d0: [1, "FP+"], d1: [2, "FP+"], d2: [3, "FP+"], d3: [4, "FP+"]
+  }
+}
+};
+
+/* ------------------------------------------------------------------ checker */
+function opById(ex, id) { return ex.ops.find(o => o.id === id); }
+
+/* Would placing `op` at (cycle, slot) be legal, given `place`? */
+function tryPlace(ex, place, op, cycle, slot) {
+  if (!MACHINE.unitOf[op.kind].includes(slot))
+    return { ok: false, rule: 1,
+      msg: `<b>${op.text}</b> needs ${MACHINE.kindName[op.kind]}, so it can only ` +
+           `issue in ${MACHINE.unitOf[op.kind].map(s => "<code>" + s + "</code>").join(" or ")}. ` +
+           `You tried <code>${slot}</code>.` };
+
+  for (const [id, p] of Object.entries(place))
+    if (p[0] === cycle && p[1] === slot && id !== op.id)
+      return { ok: false, rule: 1,
+        msg: `<code>${slot}</code> is already issuing <b>${opById(ex, id).text}</b> ` +
+             `in cycle ${cycle}. One operation per unit per cycle.` };
+
+  const II = ex.II || 0;
+  for (const s of (op.srcs || [])) {
+    if (!s.from) continue;
+    const prod = opById(ex, s.from);
+    const pp = place[s.from];
+    if (!pp) continue;                       // producer not placed yet; re-checked later
+    const need = MACHINE.lat[prod.kind];
+    const dist = cycle + II * s.dist - pp[0];
+    if (dist < need) {
+      const extra = s.dist
+        ? ` It ran on the previous trip, so the real distance is ` +
+          `<code>${cycle} + ${II} − ${pp[0]} = ${dist}</code>.`
+        : ` Its result lands in cycle <code>${pp[0] + need}</code>.`;
+      return { ok: false, rule: 2,
+        msg: `<b>${op.text}</b> reads <code>${s.reg}</code>, written by ` +
+             `<b>${prod.text}</b> in cycle ${pp[0]}. That takes ${need} cycles.` + extra +
+             ` You placed the consumer ${need - dist} cycle` +
+             `${need - dist === 1 ? "" : "s"} too early — it would read the stale value.` };
+    }
+  }
+  return { ok: true };
+}
+
+/* Full re-check: returns the ids of operations that are now illegal. */
+function violations(ex, place) {
+  const bad = new Set();
+  const II = ex.II || 0;
+  for (const [id, p] of Object.entries(place)) {
+    const op = opById(ex, id);
+    for (const s of (op.srcs || [])) {
+      if (!s.from || !place[s.from]) continue;
+      const prod = opById(ex, s.from);
+      if (p[0] + II * s.dist - place[s.from][0] < MACHINE.lat[prod.kind]) bad.add(id);
+    }
+  }
+  return bad;
+}
+
+/* The locked loop-control operations occupy real slots and the branch sets the
+   real length of the trip, so both must be counted. Getting this wrong is how
+   exercise C reported 50% instead of 62.5%. */
+function metricsOf(ex, place) {
+  const placeable = ex.ops.filter(o => !ex.locked[o.id]);
+  const done = placeable.every(o => place[o.id]);
+  const all = Object.assign({}, ex.locked, place);
+  const cycles = ex.II ? ex.II
+                       : Math.max(0, ...Object.values(all).map(p => p[0]));
+  const used = Object.keys(all).length;
+  const total = Math.max(cycles, 1) * MACHINE.slots.length;
+  return {
+    done, cycles, used,
+    occ: total ? 100 * used / total : 0,
+    fpc: cycles ? ex.flops / cycles : 0,
+    perIter: cycles ? cycles / ex.iters : 0
+  };
+}
+
+/* ====================== SHARED MODEL: END ====================== */
+
+/* ------------------------------------------------------------------ view */
+const KEY = "aca-l11-worksheet-v1";
+let cur = "A", sel = null, place = {}, hist = [];
+
+function load() {
+  try {
+    const st = JSON.parse(localStorage.getItem(KEY) || "{}");
+    if (st.cur && EXAMPLES[st.cur]) cur = st.cur;
+    place = (st.place && st.place[cur]) || {};
+  } catch (e) { place = {}; }
+}
+function store() {
+  try {
+    const st = JSON.parse(localStorage.getItem(KEY) || "{}");
+    st.cur = cur; st.place = st.place || {}; st.place[cur] = place;
+    localStorage.setItem(KEY, JSON.stringify(st));
+  } catch (e) { /* private mode: the worksheet still works, it just forgets */ }
+}
+
+function ex() { return EXAMPLES[cur]; }
+
+function say(html, cls) {
+  const m = document.getElementById("msg");
+  m.className = "msg" + (cls ? " " + cls : "");
+  m.innerHTML = html;
+}
+
+function renderMachine() {
+  document.getElementById("machine").innerHTML =
+    `<div class="u"><b>Int1</b> <b>Int2</b> &middot; integer / branch &middot; latency 1</div>
+     <div class="u"><b>M1</b> <b>M2</b> &middot; load / store &middot; latency 3</div>
+     <div class="u"><b>FP+</b> &middot; FP add &middot; latency 4</div>
+     <div class="u"><b>FPx</b> &middot; FP multiply &middot; latency 4</div>
+     <div class="u">all units pipelined &middot; <b>no interlocks</b></div>`;
+}
+
+function renderTabs() {
+  document.getElementById("tabs").innerHTML = Object.keys(EXAMPLES)
+    .map(k => `<div class="tab${k === cur ? " on" : ""}" data-k="${k}">${EXAMPLES[k].name}</div>`)
+    .join("");
+  document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
+    store(); cur = t.dataset.k;
+    const st = JSON.parse(localStorage.getItem(KEY) || "{}");
+    place = (st.place && st.place[cur]) || {};
+    sel = null; hist = [];
+    say("Pick an operation on the left, then click the slot you want it in.");
+    render();
+  });
+}
+
+function renderPool() {
+  const e = ex();
+  const free = e.ops.filter(o => !e.locked[o.id]);
+  document.getElementById("pool").innerHTML = free.map(o => {
+    const done = !!place[o.id];
+    // The tag names WHICH SOURCE ITERATION this operation serves. "stage k-1"
+    // means nothing to someone meeting the kernel for the first time; "A[4]"
+    // does, and it is what makes three-iterations-in-one-word legible.
+    const arr = { 0: "A", 1: "A", 2: "B" }[o.stage];
+    const stg = (o.stage !== undefined)
+      ? `<span class="stg s${o.stage}">${arr}[${o.iter}]</span>` : "";
+    return `<div class="op${done ? " done" : ""}${sel === o.id ? " sel" : ""}" data-id="${o.id}">
+              <span>${o.text}</span>${stg}</div>`;
+  }).join("");
+  document.querySelectorAll(".op").forEach(el => el.onclick = () => {
+    if (place[el.dataset.id]) return;
+    sel = (sel === el.dataset.id) ? null : el.dataset.id;
+    render();
+  });
+  document.getElementById("poolnote").innerHTML = e.II
+    ? "The tag is the array element each operation handles: three different " +
+      "source iterations are in flight at once."
+    : "Loop control is already placed for you, in grey.";
+}
+
+function renderGrid() {
+  const e = ex(), bad = violations(e, place);
+  const at = {};
+  for (const [id, p] of Object.entries(place)) at[p[0] + "|" + p[1]] = id;
+  for (const [id, p] of Object.entries(e.locked)) at[p[0] + "|" + p[1]] = id;
+
+  let h = "<tr><th class='cy'>cyc</th>" +
+          MACHINE.slots.map(s => `<th>${s}</th>`).join("") + "</tr>";
+  for (let c = 1; c <= e.cycles; c++) {
+    h += `<tr><td class="cy">${c}</td>`;
+    for (const s of MACHINE.slots) {
+      const id = at[c + "|" + s];
+      if (id) {
+        const o = opById(e, id);
+        const locked = !!e.locked[id];
+        let cls = locked ? "locked" : (bad.has(id) ? "bad"
+                 : (o.stage !== undefined ? "st" + o.stage : "ok"));
+        // Once an operation is placed its pool chip is struck through, so the
+        // grid has to carry the iteration tag too -- otherwise the finished
+        // kernel is back to being three register names in a row.
+        const arr = { 0: "A", 1: "A", 2: "B" }[o.stage];
+        const body = (o.iter === undefined) ? o.text
+          : `${o.text}<span class="celltag">${arr}[${o.iter}]</span>`;
+        h += `<td><div class="cell ${cls}" data-id="${id}" data-l="${locked ? 1 : 0}">${body}</div></td>`;
+      } else {
+        const allowed = sel && MACHINE.unitOf[opById(e, sel).kind].includes(s);
+        h += `<td><div class="cell empty${sel && !allowed ? " dis" : ""}" ` +
+             `data-c="${c}" data-s="${s}"></div></td>`;
+      }
+    }
+    h += "</tr>";
+  }
+  document.getElementById("grid").innerHTML = h;
+
+  document.querySelectorAll(".cell.empty").forEach(el => el.onclick = () => {
+    if (!sel) { say("Choose an operation from the list on the left first."); return; }
+    const op = opById(e, sel);
+    const c = +el.dataset.c, s = el.dataset.s;
+    const v = tryPlace(e, Object.assign({}, place, e.locked), op, c, s);
+    if (!v.ok) {
+      say(v.msg + `<span class="rule">Rule ${v.rule}: ` +
+          (v.rule === 1 ? "one operation per unit per cycle, and only on a unit of the right kind."
+                        : "a result is readable exactly L cycles after the producer issues.") +
+          "</span>", "err");
+      return;
+    }
+    hist.push(JSON.parse(JSON.stringify(place)));
+    place[sel] = [c, s];
+    sel = null;
+    store(); render(); afterPlace();
+  });
+
+  document.querySelectorAll(".cell[data-l='0']").forEach(el => el.onclick = () => {
+    hist.push(JSON.parse(JSON.stringify(place)));
+    delete place[el.dataset.id];
+    store(); render();
+    say("Removed. Place it somewhere else.");
+  });
+}
+
+function renderMetrics() {
+  const e = ex(), m = metricsOf(e, place);
+  const hit = m.done && m.cycles <= e.bound.best;
+  const cells = [
+    ["cycles per trip", m.done ? m.cycles : "—", m.done && m.cycles <= e.bound.best],
+    ["per source iteration", m.done ? m.perIter.toFixed(2) : "—", false],
+    ["FLOP / cycle", m.done ? m.fpc.toFixed(3) : "—", hit],
+    ["slots used", m.done ? m.occ.toFixed(1) + "%" : "—", false],
+    ["II lower bound", e.bound.ii.toFixed(2), false]
+  ];
+  document.getElementById("metrics").innerHTML = cells.map(([k, v, g]) =>
+    `<div class="metric${g ? " hit" : ""}"><div class="k">${k}</div><div class="v">${v}</div></div>`
+  ).join("");
+}
+
+function afterPlace() {
+  const e = ex(), m = metricsOf(e, place);
+  if (!m.done) return;
+  if (m.cycles <= e.bound.best) {
+    say(`<b>That is the best this machine can do.</b> ${e.flops} FP results in ` +
+        `${m.cycles} cycles = <b>${m.fpc.toFixed(3)} FLOP/cycle</b>, ` +
+        `${m.perIter.toFixed(2)} cycles per source iteration. ` +
+        `The lower bound is <code>II &ge; max(ResMII, RecMII) = ${e.bound.ii}</code> ` +
+        `per source iteration — ${e.bound.why}.` +
+        `<span class="rule">No cleverer schedule exists for Machine V. ` +
+        `Beating it needs more hardware, not a better compiler.</span>`, "good");
+  } else {
+    say(`All placed, and every rule is satisfied — ${m.cycles} cycles. ` +
+        `But ${e.bound.best} is achievable. Something is sitting later than it ` +
+        `needs to: look for an operation whose inputs were ready earlier.`, "err");
+  }
+}
+
+function render() { renderTabs(); renderPool(); renderGrid(); renderMetrics();
+  const e = ex();
+  document.getElementById("exname").textContent = e.name;
+  document.getElementById("exsub").textContent = e.sub;
+  document.getElementById("exgoal").textContent = e.goal;
+}
+
+document.getElementById("undo").onclick = () => {
+  if (!hist.length) { say("Nothing to undo."); return; }
+  place = hist.pop(); sel = null; store(); render();
+};
+document.getElementById("clear").onclick = () => {
+  hist.push(JSON.parse(JSON.stringify(place)));
+  place = {}; sel = null; store(); render();
+  say("Cleared. Start again.");
+};
+document.getElementById("solve").onclick = () => {
+  hist.push(JSON.parse(JSON.stringify(place)));
+  place = JSON.parse(JSON.stringify(ex().solution));
+  sel = null; store(); render();
+  const m = metricsOf(ex(), place);
+  say(`One correct schedule, ${m.cycles} cycles, ` +
+      `<b>${m.fpc.toFixed(3)} FLOP/cycle</b>. It is not the only one — ` +
+      `try to find a different placement with the same cycle count.`, "good");
+};
+
+renderMachine(); load(); render();
+</script>
+</body>
+</html>

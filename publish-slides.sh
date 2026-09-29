@@ -36,6 +36,10 @@ DST="$WEB_DIR/slides"
 # folder-in-course-repo : published-name
 # Older folders are named by authoring order, so the map is not the identity;
 # L6 onward are named by course number and map straight across.
+#
+# L11 has two folders in the course repo. `L11-alternate` is the published cut
+# (one machine, one loop, one number from the first schedule to the last);
+# `L11-vliw-software-pipelining` is the earlier version and is kept, not served.
 DECKS=(
   "L1-digital-circuits-bsv:L3"
   "L2-tiny-processor:L4"
@@ -44,6 +48,7 @@ DECKS=(
   "L7-scoreboarding:L7"
   "L8-tomasulo:L8"
   "L9-reorder-buffer:L9"
+  "L11-alternate:L11"
 )
 
 # Hand-written interactive worksheets: a single self-contained HTML checked into
@@ -53,6 +58,7 @@ WORKSHEETS=(
   "L7-scoreboarding:L7"
   "L8-tomasulo:L8"
   "L9-reorder-buffer:L9"
+  "L11-alternate:L11"
 )
 
 BUILD=0
