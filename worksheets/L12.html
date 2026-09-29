@@ -107,8 +107,8 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--border);
      Choose a tile, and find out what the machine does with it.</p>
   <p class="prov"><b>Where these numbers come from.</b> The hardware constants
      are AMD's published figures for XDNA&nbsp;2 (32 compute tiles, 512 INT8
-     MAC/cycle each, 64&nbsp;KB of data memory per tile, two 256-bit load
-     slots). Everything else on this page is computed from them by the same
+     MAC/cycle each, 64&nbsp;KB of data memory per tile, two 512-bit load
+     units = 128&nbsp;B/cycle). Everything else on this page is computed by the same
      model the slides use. Nothing here was measured — there is no NPU behind
      this page.</p>
 </header>
@@ -171,6 +171,10 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--border);
 
 <h2>Scaled to the whole problem</h2>
 <table id="whole"><tbody></tbody></table>
+<p class="note">Sharing A along each row and B down each column is what the
+  array picture in the lecture does. The right-hand column is what it costs if
+  every core fetches its own operands — the same arithmetic, three times the
+  DDR traffic.</p>
 
 <footer>
   Keyboard: <span class="kbd">&larr;</span> <span class="kbd">&rarr;</span>
@@ -197,28 +201,35 @@ const HW = {
   l1Bytes: 64 * 1024,
   l2Bytes: 512 * 1024,
   loadSlots: 2,
-  loadBits: 256,
+  loadBits: 512,            // AIE-ML v2: two 512-bit loads = 128 B/cycle.
+                            // (AIE-ML was 256-bit. Do not mix generations.)
   macsPerCycle: 512,        // INT8, per compute tile
   topsMarketed: 50.0
 };
 HW.tiles = HW.rows * HW.cols;
 
-// Byte widths are CERTAIN for every type and are all the footprint arithmetic
-// needs. The MAC rate is DOCUMENTED for INT8 only. For i16 and bf16 the rate
-// below is an ASSUMPTION, flagged as such, surfaced in the UI whenever it is
-// used, and mirrored in assets/npu.py as ASSUMED_MAC_SCALE so verify-sync.sh
-// can check the two agree. Exercise 1 does not depend on it at all -- a
-// footprint needs only byte widths.
+// All four MAC rates are DOCUMENTED -- AM027's Functional Overview tabulates
+// int8 512, int16 128, bfloat16 256 and fp16 256 MAC/cycle for AIE-ML v2. An
+// earlier version of this page treated the non-INT8 rates as assumptions and
+// warned about them in the UI; that warning was wrong and is gone.
 const DT = {
-  i8:   { inB: 1, outB: 4, label: 'i8 in, i32 out',   macScale: 1,    assumed: false },
-  i16:  { inB: 2, outB: 4, label: 'i16 in, i32 out',  macScale: 0.25, assumed: true  },
-  bf16: { inB: 2, outB: 4, label: 'bf16 in, f32 out', macScale: 0.5,  assumed: true  }
+  i8:   { inB: 1, outB: 4, label: 'i8 in, i32 out',   macs: 512 },
+  i16:  { inB: 2, outB: 4, label: 'i16 in, i32 out',  macs: 128 },
+  bf16: { inB: 2, outB: 4, label: 'bf16 in, f32 out', macs: 256 }
 };
 
-/** MACs per input element for an m x k by k x n tile.
- *  For a square tile of edge b this is exactly b/2 -- the lecture's spine. */
+/** MACs per distinct INPUT ELEMENT for an m x k by k x n tile.
+ *  For a square tile of edge b this is exactly b/2 -- the lecture's spine.
+ *  This is REUSE, not roofline arithmetic intensity: it is per element, not
+ *  per byte, and it excludes the output. See intensityPerByte(). */
 function intensity(m, k, n) {
   return (m * k * n) / (m * k + k * n);
+}
+
+/** The roofline quantity: MACs per BYTE crossing the boundary, counting C. */
+function intensityPerByte(m, k, n, dt) {
+  const d = DT[dt];
+  return (m * k * n) / ((m * k + k * n) * d.inB + m * n * d.outB);
 }
 
 /** Bytes of tile data memory this tiling needs. */
@@ -241,7 +252,7 @@ function feedAvailable(dt) {
 }
 
 function macRate(dt) {
-  return HW.macsPerCycle * DT[dt].macScale;
+  return DT[dt].macs;
 }
 
 /** The full verdict for one tiling. Everything the page and the report show
@@ -277,36 +288,55 @@ function evaluate(m, k, n, dt, buffers) {
     headroom: 0
   });
 
-  const cycles = (m * k * n) / rate;
+  // Being under-fed means SLOWER, not broken: throughput is bounded by
+  // min(peak, bandwidth x reuse). An earlier version reported achieved = 0,
+  // which said the design could not run at all. It runs; it just starves.
+  const achieved = fits ? Math.min(rate, have * inten) : 0;
+  const cycles = (m * k * n) / (achieved || rate);
   return {
     m, k, n, dt, buffers, f, fits, inten, rate, need, have, fed, binds,
     cycles,
     macs: m * k * n,
-    // achieved rate if the tiling is legal; zero if it cannot run at all
-    achieved: (fits && fed) ? rate : 0,
-    optimal: fits && fed && inten >= 16
+    perByte: intensityPerByte(m, k, n, dt),
+    achieved,
+    frac: achieved / rate
   };
 }
 
-/** Scale one tile up to the running 512^3 problem. */
-function wholeProblem(ev, M, K, N) {
+/** Scale one tile up to the running 512^3 problem.
+ *
+ *  `share` picks the data-movement policy, because the answer depends on it
+ *  by a factor of three and an earlier version of this page silently assumed
+ *  the worst one -- contradicting the broadcast picture the deck teaches.
+ *
+ *    'none'  every core pulls its own A and B from DDR. A is re-read once per
+ *            column of output tiles, B once per row. The no-sharing baseline.
+ *    'array' the taught policy: a grid of `rows` x `cols` cores shares one A
+ *            row-strip along each row and one B column-strip down each column,
+ *            so a whole rows x cols block of C costs one read of each.
+ */
+function wholeProblem(ev, M, K, N, share = 'array', rows = 4, cols = 4) {
   const d = DT[ev.dt];
   const tilesM = Math.ceil(M / ev.m), tilesN = Math.ceil(N / ev.n);
   const tilesK = Math.ceil(K / ev.k);
   const tileCount = tilesM * tilesN * tilesK;
-  // Traffic out of DDR: each A tile is re-read for every n-block, each B tile
-  // for every m-block, and C is written once if the k-loop is innermost.
-  const aBytes = tilesM * tilesK * ev.m * ev.k * d.inB * tilesN;
-  const bBytes = tilesK * tilesN * ev.k * ev.n * d.inB * tilesM;
   const cBytes = M * N * d.outB;
+
+  // How many times each input element crosses DDR, under each policy.
+  const aRepeat = share === 'array' ? Math.ceil(tilesN / cols) : tilesN;
+  const bRepeat = share === 'array' ? Math.ceil(tilesM / rows) : tilesM;
+  const aBytes = M * K * d.inB * aRepeat;
+  const bBytes = K * N * d.inB * bRepeat;
   const totalB = aBytes + bBytes + cBytes;
+
+  const cores = share === 'array' ? rows * cols : HW.tiles;
   const macs = M * K * N;
-  const cyclesOneCore = macs / ev.rate;
-  const cyclesArray = cyclesOneCore / HW.tiles;
+  const cyclesArray = macs / (ev.achieved || ev.rate) / cores;
   const usCompute = cyclesArray / (HW.clockGHz * 1e9) * 1e6;
   const usMove = totalB / (50e9) * 1e6;
   return { tilesM, tilesK, tilesN, tileCount, aBytes, bBytes, cBytes, totalB,
-           macs, cyclesArray, usCompute, usMove, ratio: usMove / usCompute,
+           macs, cores, share, cyclesArray, usCompute, usMove,
+           ratio: usMove / usCompute,
            bound: usMove > usCompute ? 'DDR bandwidth' : 'arithmetic' };
 }
 
@@ -323,19 +353,22 @@ const EXERCISES = {
           'it from a capacity and a data type rather than reading it off their code.'
   },
   2: {
-    name: '2 · The smallest tile the loads can feed',
-    task: 'Switch to <b>i8</b>. Shrink the tile until the two 256-bit load ' +
-          'slots can no longer keep the vector unit fed. Where is break-even?',
+    name: '2 · Where the load path runs out',
+    task: 'Switch to <b>i8</b>. Shrink the tile until the two 512-bit load ' +
+          'units (128 B/cycle) can no longer keep the vector unit fed. ' +
+          'Where exactly does that happen — and what size is that?',
     start: { m: 64, k: 64, n: 64, dt: 'i8', buf: 2 },
-    goal: ev => ev.dt === 'i8' && ev.m === 16 && ev.k === 16 && ev.n === 16,
-    done: 'Below b = 16 the operands cannot come from memory at full rate. ' +
-          'That is why the matmul intrinsic’s operands live in registers.'
+    goal: ev => ev.dt === 'i8' && ev.m === 8 && ev.k === 8 && ev.n === 8,
+    done: 'b = 8 — exactly the size of the matmul intrinsic. Feeding it ' +
+          'consumes the entire load budget with nothing to spare, so any ' +
+          'further reuse has to come from registers.'
   },
   3: {
     name: '3 · The whole 512³ problem',
-    task: 'Back to <b>i16</b> and a <b>64³</b> tile. Look at the bottom ' +
-          'table: is the whole problem limited by arithmetic or by DDR? ' +
-          'Try a 128³ tile — what changes, and what breaks?',
+    task: 'Back to <b>i16</b> and a <b>64³</b> tile. In the bottom table, ' +
+          'compare the two movement policies, then ask: is this problem ' +
+          'limited by arithmetic or by DDR? Try a 128³ tile — what improves, ' +
+          'and what breaks?',
     start: { m: 64, k: 64, n: 64, dt: 'i16', buf: 2 },
     goal: ev => false,
     done: ''
@@ -383,14 +416,7 @@ function render() {
   $('mv').textContent = s.m; $('kv').textContent = s.k; $('nv').textContent = s.n;
   const ev = evaluate(s.m, s.k, s.n, s.dt, s.buf);
   const E = EXERCISES[ex];
-  $('task').innerHTML = '<b>Exercise.</b> ' + E.task +
-    (DT[s.dt].assumed
-      ? '<br><span style="color:var(--gold);font-size:13.5px">' +
-        '<b>Note.</b> AMD publishes a MAC rate for INT8 only. The rate used ' +
-        'for ' + s.dt + ' below is an assumption — it scales the INT8 rate by ' +
-        'element width. Footprint and intensity do not depend on it; the ' +
-        'cycle counts and feed rates do.</span>'
-      : '');
+  $('task').innerHTML = '<b>Exercise.</b> ' + E.task;
 
   /* ---- verdict */
   const v = $('verdict'), h = v.querySelector('h3'), why = v.querySelector('.why');
@@ -466,11 +492,12 @@ ${E.goal(ev) ? '\n' + E.done : ''}`;
       ['MACs in one tile', `${s.m} × ${s.k} × ${s.n}`, ev.macs.toLocaleString()],
       ['input elements', `${s.m}·${s.k} + ${s.k}·${s.n}`,
         (s.m * s.k + s.k * s.n).toLocaleString()],
-      ['arithmetic intensity', `${ev.macs.toLocaleString()} / ${(s.m*s.k + s.k*s.n).toLocaleString()}`,
+      ['input reuse (per element)', `${ev.macs.toLocaleString()} / ${(s.m*s.k + s.k*s.n).toLocaleString()}`,
         ev.inten.toFixed(2) + ' MAC/elem' + (square ? `  (b/2 = ${s.m/2})` : '')],
-      ['MAC rate for ' + DT[s.dt].label +
-        (DT[s.dt].assumed ? ' <b style="color:var(--gold)">(assumed)</b>' : ''),
-        `${HW.macsPerCycle} × ${DT[s.dt].macScale}`,
+      ['arithmetic intensity (per <b>byte</b>, counts C)',
+        `b / (2·${DT[s.dt].inB} + ${DT[s.dt].outB})`,
+        ev.perByte.toFixed(2) + ' MAC/byte'],
+      ['MAC rate for ' + DT[s.dt].label, 'AM027, AIE-ML v2',
         ev.rate + ' MAC/cycle'],
       ['cycles for this tile', `${ev.macs.toLocaleString()} / ${ev.rate}`,
         Math.round(ev.cycles).toLocaleString() + ' cycles'],
@@ -480,17 +507,30 @@ ${E.goal(ev) ? '\n' + E.done : ''}`;
         ev.have.toFixed(0)]
     ].map(r => `<tr><td>${r[0]}</td><td class="num">${r[1]}</td><td class="num">${r[2]}</td></tr>`).join('');
 
-  /* ---- whole problem */
-  const w = wholeProblem(ev, 512, 512, 512);
+  /* ---- whole problem, under BOTH data-movement policies */
+  const wS = wholeProblem(ev, 512, 512, 512, 'array', 4, 4);
+  const wN = wholeProblem(ev, 512, 512, 512, 'none');
   $('whole').querySelector('tbody').innerHTML =
-    '<tr><th>C = A·B, 512³</th><th></th></tr>' +
+    '<tr><th>C = A·B, 512³</th>' +
+    '<th>4×4 array, A and B shared</th>' +
+    '<th>no sharing</th></tr>' +
     [
-      ['tiles', `${w.tilesM} × ${w.tilesK} × ${w.tilesN} = ${w.tileCount.toLocaleString()}`],
-      ['DDR traffic', `${fmtB(w.totalB)}  (A ${fmtB(w.aBytes)} · B ${fmtB(w.bBytes)} · C ${fmtB(w.cBytes)})`],
-      [`arithmetic on ${HW.tiles} cores`, `${Math.round(w.cyclesArray).toLocaleString()} cycles = ${w.usCompute.toFixed(1)} µs`],
-      ['movement at ~50 GB/s', `${w.usMove.toFixed(1)} µs`],
-      ['limited by', `<b>${w.bound}</b>, by ${w.ratio > 1 ? w.ratio.toFixed(1) : (1/w.ratio).toFixed(1)}×`]
-    ].map(r => `<tr><td>${r[0]}</td><td class="num">${r[1]}</td></tr>`).join('');
+      ['tiles',
+        `${wS.tilesM} × ${wS.tilesK} × ${wS.tilesN} = ${wS.tileCount.toLocaleString()}`,
+        'same'],
+      ['DDR traffic', fmtB(wS.totalB), fmtB(wN.totalB)],
+      ['&nbsp;&nbsp;of which A · B · C',
+        `${fmtB(wS.aBytes)} · ${fmtB(wS.bBytes)} · ${fmtB(wS.cBytes)}`,
+        `${fmtB(wN.aBytes)} · ${fmtB(wN.bBytes)} · ${fmtB(wN.cBytes)}`],
+      ['arithmetic',
+        `${wS.cores} cores, ${wS.usCompute.toFixed(1)} µs`,
+        `${wN.cores} cores, ${wN.usCompute.toFixed(1)} µs`],
+      ['movement at ~50 GB/s', `${wS.usMove.toFixed(1)} µs`, `${wN.usMove.toFixed(1)} µs`],
+      ['limited by',
+        `<b>${wS.bound}</b>, by ${(wS.ratio > 1 ? wS.ratio : 1/wS.ratio).toFixed(1)}×`,
+        `<b>${wN.bound}</b>, by ${(wN.ratio > 1 ? wN.ratio : 1/wN.ratio).toFixed(1)}×`]
+    ].map(r => `<tr><td>${r[0]}</td><td class="num">${r[1]}</td>` +
+               `<td class="num">${r[2]}</td></tr>`).join('');
 
   try { localStorage.setItem(KEY, JSON.stringify({ ex, ...s })); } catch (e) {}
 }
