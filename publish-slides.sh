@@ -49,6 +49,7 @@ DECKS=(
   "L8-tomasulo:L8"
   "L9-reorder-buffer:L9"
   "L11-alternate:L11"
+  "L12-npu-aie-iron:L12"
 )
 
 # Hand-written interactive worksheets: a single self-contained HTML checked into
@@ -59,6 +60,7 @@ WORKSHEETS=(
   "L8-tomasulo:L8"
   "L9-reorder-buffer:L9"
   "L11-alternate:L11"
+  "L12-npu-aie-iron:L12"
 )
 
 BUILD=0

@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>L12 Worksheet — Sizing a tile for the NPU</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --accent:#2d4a8a; --ink:#1a1a2e; --muted:#5b5b6b; --border:#d7dbe6;
+  --panel:#f4f6fb; --bg:#ffffff; --faded:#c9c9d2;
+  --red:#b03a2e; --red-f:#f6ddd8; --green:#2e7d32; --green-f:#dfeede;
+  --teal:#0f766e; --teal-f:#d2eeea; --slate:#475569; --slate-f:#e4e8ef;
+  --gold:#b8860b; --gold-f:#fff3d6;
+  --a-f:#fbe3d0; --a-e:#c2703a;
+  --b-f:#d6e4f7; --b-e:#3a6bb0;
+  --c-f:#e8e8ee; --c-e:#5b5b6b;
+  --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+     font-size:15.5px;line-height:1.55}
+.wrap{max-width:1180px;margin:0 auto;padding:26px 22px 70px}
+header h1{font-size:26px;margin:0 0 4px;color:var(--accent);letter-spacing:-.01em}
+header p.sub{margin:0 0 6px;color:var(--muted);font-size:15px}
+header p.prov{margin:0 0 22px;color:var(--muted);font-size:13px;
+     border-left:3px solid var(--teal);padding:6px 0 6px 11px;background:var(--teal-f)}
+h2{font-size:18px;margin:30px 0 10px;color:var(--accent)}
+code,kbd{font-family:var(--mono)}
+
+/* ---- exercise picker */
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 18px}
+.tab{border:1.6px solid var(--border);background:#fff;border-radius:8px;
+     padding:8px 13px;cursor:pointer;font-family:var(--sans);font-size:14px;
+     color:var(--muted);transition:.12s}
+.tab:hover{border-color:var(--accent)}
+.tab.on{border-color:var(--accent);background:var(--accent);color:#fff;font-weight:600}
+.task{background:var(--panel);border:1px solid var(--border);border-radius:10px;
+      padding:13px 16px;margin:0 0 20px}
+.task b{color:var(--accent)}
+
+/* ---- controls */
+.controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));
+          gap:14px;margin:0 0 20px}
+.ctl label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:5px;
+           font-weight:600;letter-spacing:.02em;text-transform:uppercase}
+.ctl input[type=range]{width:100%}
+.ctl .val{font-family:var(--mono);font-size:19px;font-weight:700;color:var(--ink)}
+.ctl select{width:100%;padding:7px 8px;border:1.6px solid var(--border);
+            border-radius:7px;font-family:var(--mono);font-size:14px;background:#fff}
+
+/* ---- verdict */
+.verdict{border-radius:10px;padding:15px 18px;margin:0 0 20px;border:2px solid}
+.verdict.ok{background:var(--green-f);border-color:var(--green)}
+.verdict.bad{background:var(--red-f);border-color:var(--red)}
+.verdict.warn{background:var(--gold-f);border-color:var(--gold)}
+.verdict h3{margin:0 0 7px;font-size:17px}
+.verdict.ok h3{color:var(--green)} .verdict.bad h3{color:var(--red)}
+.verdict.warn h3{color:var(--gold)}
+.verdict .why{font-family:var(--mono);font-size:13.5px;line-height:1.75;
+              white-space:pre-wrap;color:var(--ink)}
+
+/* ---- footprint bar */
+.bar{display:flex;height:42px;border-radius:7px;overflow:hidden;
+     border:1.6px solid var(--border);margin:6px 0 4px;position:relative;
+     background:repeating-linear-gradient(45deg,#fafbfd,#fafbfd 7px,#f1f3f8 7px,#f1f3f8 14px)}
+.seg{display:flex;align-items:center;justify-content:center;font-family:var(--mono);
+     font-size:12px;font-weight:600;overflow:hidden;white-space:nowrap;
+     border-right:1px solid rgba(0,0,0,.14)}
+.seg.a{background:var(--a-f);color:var(--a-e)}
+.seg.b{background:var(--b-f);color:var(--b-e)}
+.seg.c{background:var(--c-f);color:var(--c-e)}
+.cap-line{position:absolute;top:-4px;bottom:-4px;width:3px;background:var(--teal);z-index:5}
+.bar-legend{display:flex;justify-content:space-between;font-size:12.5px;
+            color:var(--muted);font-family:var(--mono)}
+
+/* ---- tables */
+table{border-collapse:collapse;width:100%;font-size:14px;margin:6px 0 4px}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left}
+th{background:var(--panel);color:var(--accent);font-weight:600;font-size:12.5px;
+   text-transform:uppercase;letter-spacing:.03em}
+td.num{font-family:var(--mono);text-align:right}
+tr.bind td{background:var(--gold-f);font-weight:600}
+tr.bind td:first-child::after{content:"  <- binds";color:var(--gold);
+   font-family:var(--mono);font-size:12px}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+@media (max-width:860px){.grid2{grid-template-columns:1fr}}
+.note{font-size:13px;color:var(--muted);margin:8px 0 0}
+.kbd{font-family:var(--mono);background:var(--panel);border:1px solid var(--border);
+     border-radius:4px;padding:1px 5px;font-size:12.5px}
+footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--border);
+       font-size:13px;color:var(--muted)}
+.hl{background:var(--teal-f);padding:1px 5px;border-radius:4px;
+    font-family:var(--mono);font-weight:600;color:var(--teal)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Sizing a tile for the AI Engine</h1>
+  <p class="sub">Lecture 12 — VLIW in practice: the AMD AI Engine NPU.
+     Choose a tile, and find out what the machine does with it.</p>
+  <p class="prov"><b>Where these numbers come from.</b> The hardware constants
+     are AMD's published figures for XDNA&nbsp;2 (32 compute tiles, 512 INT8
+     MAC/cycle each, 64&nbsp;KB of data memory per tile, two 256-bit load
+     slots). Everything else on this page is computed from them by the same
+     model the slides use. Nothing here was measured — there is no NPU behind
+     this page.</p>
+</header>
+
+<div class="tabs" id="tabs"></div>
+<div class="task" id="task"></div>
+
+<div class="controls">
+  <div class="ctl">
+    <label for="m">m — rows of the C tile</label>
+    <input type="range" id="m" min="8" max="256" step="8" value="64">
+    <div class="val" id="mv">64</div>
+  </div>
+  <div class="ctl">
+    <label for="k">k — the reduction depth</label>
+    <input type="range" id="k" min="8" max="256" step="8" value="64">
+    <div class="val" id="kv">64</div>
+  </div>
+  <div class="ctl">
+    <label for="n">n — cols of the C tile</label>
+    <input type="range" id="n" min="8" max="256" step="8" value="64">
+    <div class="val" id="nv">64</div>
+  </div>
+  <div class="ctl">
+    <label for="dt">data type</label>
+    <select id="dt">
+      <option value="i8">i8 in, i32 out</option>
+      <option value="i16" selected>i16 in, i32 out</option>
+      <option value="bf16">bf16 in, f32 out</option>
+    </select>
+  </div>
+  <div class="ctl">
+    <label for="buf">FIFO depth</label>
+    <select id="buf">
+      <option value="1">1 — single buffered</option>
+      <option value="2" selected>2 — double buffered</option>
+    </select>
+  </div>
+</div>
+
+<div class="verdict" id="verdict"><h3></h3><div class="why"></div></div>
+
+<div class="grid2">
+  <div>
+    <h2>Tile data memory — 64 KB</h2>
+    <div class="bar" id="bar"></div>
+    <div class="bar-legend"><span>0</span><span id="capLbl">64 KB</span></div>
+    <p class="note" id="footNote"></p>
+  </div>
+  <div>
+    <h2>What binds</h2>
+    <table id="binds"><tbody></tbody></table>
+    <p class="note">Each row is a rate the tile must sustain to keep its vector
+      unit fed. The binding row is the smallest.</p>
+  </div>
+</div>
+
+<h2>The arithmetic, step by step</h2>
+<table id="steps"><tbody></tbody></table>
+
+<h2>Scaled to the whole problem</h2>
+<table id="whole"><tbody></tbody></table>
+
+<footer>
+  Keyboard: <span class="kbd">&larr;</span> <span class="kbd">&rarr;</span>
+  adjust the last slider you touched;
+  <span class="kbd">1</span>&ndash;<span class="kbd">3</span> switch exercise;
+  <span class="kbd">r</span> resets. Your position is remembered in this browser.
+</footer>
+
+</div>
+
+<script>
+/* ===================================================================
+   SHARED MODEL: START
+   Lifted verbatim by worksheet-report.js -- keep these two marker lines
+   exactly as they are. There is ONE implementation of this arithmetic and
+   the instructor report runs this same code rather than reimplementing it.
+   It mirrors assets/npu.py; verify-sync.sh compares the two value for value.
+   =================================================================== */
+
+const HW = {
+  name: 'AMD XDNA 2 (Strix Point)',
+  rows: 4, cols: 8,
+  clockGHz: 1.8,
+  l1Bytes: 64 * 1024,
+  l2Bytes: 512 * 1024,
+  loadSlots: 2,
+  loadBits: 256,
+  macsPerCycle: 512,        // INT8, per compute tile
+  topsMarketed: 50.0
+};
+HW.tiles = HW.rows * HW.cols;
+
+// Byte widths are CERTAIN for every type and are all the footprint arithmetic
+// needs. The MAC rate is DOCUMENTED for INT8 only. For i16 and bf16 the rate
+// below is an ASSUMPTION, flagged as such, surfaced in the UI whenever it is
+// used, and mirrored in assets/npu.py as ASSUMED_MAC_SCALE so verify-sync.sh
+// can check the two agree. Exercise 1 does not depend on it at all -- a
+// footprint needs only byte widths.
+const DT = {
+  i8:   { inB: 1, outB: 4, label: 'i8 in, i32 out',   macScale: 1,    assumed: false },
+  i16:  { inB: 2, outB: 4, label: 'i16 in, i32 out',  macScale: 0.25, assumed: true  },
+  bf16: { inB: 2, outB: 4, label: 'bf16 in, f32 out', macScale: 0.5,  assumed: true  }
+};
+
+/** MACs per input element for an m x k by k x n tile.
+ *  For a square tile of edge b this is exactly b/2 -- the lecture's spine. */
+function intensity(m, k, n) {
+  return (m * k * n) / (m * k + k * n);
+}
+
+/** Bytes of tile data memory this tiling needs. */
+function footprint(m, k, n, dt, buffers) {
+  const d = DT[dt];
+  const a = m * k * d.inB;
+  const b = k * n * d.inB;
+  const c = m * n * d.outB;
+  return { a, b, c, single: a + b + c, total: (a + b + c) * buffers, buffers };
+}
+
+/** Input elements per cycle the level must deliver to keep the MACs fed. */
+function feedNeeded(m, k, n, macsPerCycle) {
+  return macsPerCycle / intensity(m, k, n);
+}
+
+/** What the two load slots can actually deliver, in elements per cycle. */
+function feedAvailable(dt) {
+  return HW.loadSlots * HW.loadBits / 8 / DT[dt].inB;
+}
+
+function macRate(dt) {
+  return HW.macsPerCycle * DT[dt].macScale;
+}
+
+/** The full verdict for one tiling. Everything the page and the report show
+ *  comes from here, so the two cannot disagree. */
+function evaluate(m, k, n, dt, buffers) {
+  const fp = feasible => feasible;
+  const f = footprint(m, k, n, dt, buffers);
+  const fits = f.total <= HW.l1Bytes;
+  const inten = intensity(m, k, n);
+  const rate = macRate(dt);
+  const need = feedNeeded(m, k, n, rate);
+  const have = feedAvailable(dt);
+  const fed = need <= have;
+
+  // Which constraint is the smallest -- i.e. what actually limits you.
+  const binds = [];
+  binds.push({
+    what: 'L1 capacity',
+    detail: `${f.total} B of ${HW.l1Bytes} B`,
+    ok: fits,
+    headroom: HW.l1Bytes - f.total
+  });
+  binds.push({
+    what: 'load slots',
+    detail: `need ${need.toFixed(1)}, have ${have.toFixed(0)} elem/cycle`,
+    ok: fed,
+    headroom: have - need
+  });
+  binds.push({
+    what: 'intrinsic alignment',
+    detail: `m,k,n vs the 8x8 by 8x8 INT8 shape`,
+    ok: (m % 8 === 0 && k % 8 === 0 && n % 8 === 0),
+    headroom: 0
+  });
+
+  const cycles = (m * k * n) / rate;
+  return {
+    m, k, n, dt, buffers, f, fits, inten, rate, need, have, fed, binds,
+    cycles,
+    macs: m * k * n,
+    // achieved rate if the tiling is legal; zero if it cannot run at all
+    achieved: (fits && fed) ? rate : 0,
+    optimal: fits && fed && inten >= 16
+  };
+}
+
+/** Scale one tile up to the running 512^3 problem. */
+function wholeProblem(ev, M, K, N) {
+  const d = DT[ev.dt];
+  const tilesM = Math.ceil(M / ev.m), tilesN = Math.ceil(N / ev.n);
+  const tilesK = Math.ceil(K / ev.k);
+  const tileCount = tilesM * tilesN * tilesK;
+  // Traffic out of DDR: each A tile is re-read for every n-block, each B tile
+  // for every m-block, and C is written once if the k-loop is innermost.
+  const aBytes = tilesM * tilesK * ev.m * ev.k * d.inB * tilesN;
+  const bBytes = tilesK * tilesN * ev.k * ev.n * d.inB * tilesM;
+  const cBytes = M * N * d.outB;
+  const totalB = aBytes + bBytes + cBytes;
+  const macs = M * K * N;
+  const cyclesOneCore = macs / ev.rate;
+  const cyclesArray = cyclesOneCore / HW.tiles;
+  const usCompute = cyclesArray / (HW.clockGHz * 1e9) * 1e6;
+  const usMove = totalB / (50e9) * 1e6;
+  return { tilesM, tilesK, tilesN, tileCount, aBytes, bBytes, cBytes, totalB,
+           macs, cyclesArray, usCompute, usMove, ratio: usMove / usCompute,
+           bound: usMove > usCompute ? 'DDR bandwidth' : 'arithmetic' };
+}
+
+const EXERCISES = {
+  1: {
+    name: '1 · The largest tile that fits',
+    task: 'With <b>i16 in, i32 out</b> and <b>double buffering</b>, find the ' +
+          'largest square tile that fits in one core’s 64 KB. ' +
+          'Then check what happens one step larger.',
+    start: { m: 32, k: 32, n: 32, dt: 'i16', buf: 2 },
+    goal: ev => ev.fits && ev.m === 64 && ev.k === 64 && ev.n === 64 &&
+                ev.buffers === 2 && ev.dt === 'i16',
+    done: 'That is AMD’s own whole_array tile size — and you derived ' +
+          'it from a capacity and a data type rather than reading it off their code.'
+  },
+  2: {
+    name: '2 · The smallest tile the loads can feed',
+    task: 'Switch to <b>i8</b>. Shrink the tile until the two 256-bit load ' +
+          'slots can no longer keep the vector unit fed. Where is break-even?',
+    start: { m: 64, k: 64, n: 64, dt: 'i8', buf: 2 },
+    goal: ev => ev.dt === 'i8' && ev.m === 16 && ev.k === 16 && ev.n === 16,
+    done: 'Below b = 16 the operands cannot come from memory at full rate. ' +
+          'That is why the matmul intrinsic’s operands live in registers.'
+  },
+  3: {
+    name: '3 · The whole 512³ problem',
+    task: 'Back to <b>i16</b> and a <b>64³</b> tile. Look at the bottom ' +
+          'table: is the whole problem limited by arithmetic or by DDR? ' +
+          'Try a 128³ tile — what changes, and what breaks?',
+    start: { m: 64, k: 64, n: 64, dt: 'i16', buf: 2 },
+    goal: ev => false,
+    done: ''
+  }
+};
+
+/* ===================================================================
+   SHARED MODEL: END
+   =================================================================== */
+
+/* ------------------------------------------------------------------ view */
+const $ = id => document.getElementById(id);
+const KEY = 'aca-l12-worksheet';
+let ex = 1, last = 'm';
+
+function readControls() {
+  return {
+    m: +$('m').value, k: +$('k').value, n: +$('n').value,
+    dt: $('dt').value, buf: +$('buf').value
+  };
+}
+
+function setControls(s) {
+  $('m').value = s.m; $('k').value = s.k; $('n').value = s.n;
+  $('dt').value = s.dt; $('buf').value = s.buf;
+}
+
+function fmtB(b) {
+  return b >= 1024 ? (b / 1024).toFixed(b % 1024 ? 1 : 0) + ' KB' : b + ' B';
+}
+
+function renderTabs() {
+  $('tabs').innerHTML = Object.entries(EXERCISES).map(([i, e]) =>
+    `<button class="tab${+i === ex ? ' on' : ''}" data-ex="${i}">${e.name}</button>`
+  ).join('');
+  $('tabs').querySelectorAll('.tab').forEach(b => b.onclick = () => {
+    ex = +b.dataset.ex;
+    setControls(EXERCISES[ex].start);
+    render();
+  });
+}
+
+function render() {
+  const s = readControls();
+  $('mv').textContent = s.m; $('kv').textContent = s.k; $('nv').textContent = s.n;
+  const ev = evaluate(s.m, s.k, s.n, s.dt, s.buf);
+  const E = EXERCISES[ex];
+  $('task').innerHTML = '<b>Exercise.</b> ' + E.task +
+    (DT[s.dt].assumed
+      ? '<br><span style="color:var(--gold);font-size:13.5px">' +
+        '<b>Note.</b> AMD publishes a MAC rate for INT8 only. The rate used ' +
+        'for ' + s.dt + ' below is an assumption — it scales the INT8 rate by ' +
+        'element width. Footprint and intensity do not depend on it; the ' +
+        'cycle counts and feed rates do.</span>'
+      : '');
+
+  /* ---- verdict */
+  const v = $('verdict'), h = v.querySelector('h3'), why = v.querySelector('.why');
+  const square = (s.m === s.k && s.k === s.n);
+  if (!ev.fits) {
+    v.className = 'verdict bad';
+    h.textContent = 'This tiling does not fit.';
+    why.textContent =
+`A tile is ${s.m}x${s.k}, B is ${s.k}x${s.n}, C is ${s.m}x${s.n}.
+
+  A   ${s.m} x ${s.k} x ${DT[s.dt].inB} B  = ${ev.f.a} B
+  B   ${s.k} x ${s.n} x ${DT[s.dt].inB} B  = ${ev.f.b} B
+  C   ${s.m} x ${s.n} x ${DT[s.dt].outB} B  = ${ev.f.c} B
+                              ----------
+                               ${ev.f.single} B
+  x ${s.buf} buffers            = ${ev.f.total} B
+
+against ${HW.l1Bytes} B of data memory.
+You are over by ${ev.f.total - HW.l1Bytes} B.`;
+  } else if (!ev.fed) {
+    v.className = 'verdict warn';
+    h.textContent = 'It fits — but the load slots cannot keep up.';
+    why.textContent =
+`Intensity is ${ev.inten.toFixed(1)} MAC per input element${square ? `  (= b/2 = ${s.m}/2)` : ''}.
+To sustain ${ev.rate} MAC/cycle you need
+    ${ev.rate} / ${ev.inten.toFixed(1)} = ${ev.need.toFixed(1)} elements per cycle.
+
+Two 256-bit load slots deliver ${ev.have.toFixed(0)} ${s.dt} elements per cycle.
+
+The tile is too SMALL: too little reuse per element moved.`;
+  } else {
+    v.className = 'verdict ok';
+    h.textContent = E.goal(ev) ? 'That is it.' : 'Legal, and feedable.';
+    why.textContent =
+`Footprint  ${ev.f.total} B of ${HW.l1Bytes} B   (${(100*ev.f.total/HW.l1Bytes).toFixed(1)}% used)
+Intensity  ${ev.inten.toFixed(1)} MAC/element${square ? `   = b/2 = ${s.m}/2` : ''}
+Feed       needs ${ev.need.toFixed(1)} of ${ev.have.toFixed(0)} elem/cycle available
+${E.goal(ev) ? '\n' + E.done : ''}`;
+  }
+
+  /* ---- footprint bar */
+  const scale = Math.max(HW.l1Bytes, ev.f.total);
+  const seg = (cls, bytes, name) => {
+    const pct = 100 * bytes / scale;
+    return `<div class="seg ${cls}" style="width:${pct}%" title="${name}: ${bytes} B">` +
+           (pct > 7 ? `${name} ${fmtB(bytes)}` : '') + '</div>';
+  };
+  let bar = '';
+  for (let i = 0; i < s.buf; i++) {
+    bar += seg('a', ev.f.a, 'A') + seg('b', ev.f.b, 'B') + seg('c', ev.f.c, 'C');
+  }
+  bar += `<div class="cap-line" style="left:${100 * HW.l1Bytes / scale}%"></div>`;
+  $('bar').innerHTML = bar;
+  $('capLbl').textContent = fmtB(scale) + (scale > HW.l1Bytes ? '  (64 KB mark shown)' : '');
+  $('footNote').innerHTML = ev.f.buffers === 2
+    ? 'Two copies of each: the DMA fills the next tile while the core works on this one. ' +
+      'That second copy is the FIFO depth, not a safety margin.'
+    : 'Single buffered — the core must now wait for each transfer. Legal, and slow.';
+
+  /* ---- what binds */
+  const worst = ev.binds.filter(b => !b.ok);
+  $('binds').querySelector('tbody').innerHTML =
+    '<tr><th>constraint</th><th>state</th></tr>' +
+    ev.binds.map(b =>
+      `<tr class="${!b.ok ? 'bind' : ''}"><td>${b.what}</td>` +
+      `<td class="num">${b.ok ? '✓ ' : '✗ '}${b.detail}</td></tr>`
+    ).join('');
+
+  /* ---- steps */
+  $('steps').querySelector('tbody').innerHTML =
+    '<tr><th>step</th><th>arithmetic</th><th>result</th></tr>' +
+    [
+      ['MACs in one tile', `${s.m} × ${s.k} × ${s.n}`, ev.macs.toLocaleString()],
+      ['input elements', `${s.m}·${s.k} + ${s.k}·${s.n}`,
+        (s.m * s.k + s.k * s.n).toLocaleString()],
+      ['arithmetic intensity', `${ev.macs.toLocaleString()} / ${(s.m*s.k + s.k*s.n).toLocaleString()}`,
+        ev.inten.toFixed(2) + ' MAC/elem' + (square ? `  (b/2 = ${s.m/2})` : '')],
+      ['MAC rate for ' + DT[s.dt].label +
+        (DT[s.dt].assumed ? ' <b style="color:var(--gold)">(assumed)</b>' : ''),
+        `${HW.macsPerCycle} × ${DT[s.dt].macScale}`,
+        ev.rate + ' MAC/cycle'],
+      ['cycles for this tile', `${ev.macs.toLocaleString()} / ${ev.rate}`,
+        Math.round(ev.cycles).toLocaleString() + ' cycles'],
+      ['elements/cycle needed', `${ev.rate} / ${ev.inten.toFixed(2)}`,
+        ev.need.toFixed(1)],
+      ['elements/cycle available', `${HW.loadSlots} × ${HW.loadBits} bits / ${DT[s.dt].inB} B`,
+        ev.have.toFixed(0)]
+    ].map(r => `<tr><td>${r[0]}</td><td class="num">${r[1]}</td><td class="num">${r[2]}</td></tr>`).join('');
+
+  /* ---- whole problem */
+  const w = wholeProblem(ev, 512, 512, 512);
+  $('whole').querySelector('tbody').innerHTML =
+    '<tr><th>C = A·B, 512³</th><th></th></tr>' +
+    [
+      ['tiles', `${w.tilesM} × ${w.tilesK} × ${w.tilesN} = ${w.tileCount.toLocaleString()}`],
+      ['DDR traffic', `${fmtB(w.totalB)}  (A ${fmtB(w.aBytes)} · B ${fmtB(w.bBytes)} · C ${fmtB(w.cBytes)})`],
+      [`arithmetic on ${HW.tiles} cores`, `${Math.round(w.cyclesArray).toLocaleString()} cycles = ${w.usCompute.toFixed(1)} µs`],
+      ['movement at ~50 GB/s', `${w.usMove.toFixed(1)} µs`],
+      ['limited by', `<b>${w.bound}</b>, by ${w.ratio > 1 ? w.ratio.toFixed(1) : (1/w.ratio).toFixed(1)}×`]
+    ].map(r => `<tr><td>${r[0]}</td><td class="num">${r[1]}</td></tr>`).join('');
+
+  try { localStorage.setItem(KEY, JSON.stringify({ ex, ...s })); } catch (e) {}
+}
+
+['m', 'k', 'n'].forEach(id => $(id).addEventListener('input', () => { last = id; render(); }));
+['dt', 'buf'].forEach(id => $(id).addEventListener('change', render));
+
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+    const el = $(last), step = +el.step * (e.key === 'ArrowRight' ? 1 : -1);
+    el.value = Math.max(+el.min, Math.min(+el.max, +el.value + step));
+    render(); e.preventDefault();
+  } else if (e.key >= '1' && e.key <= '3') {
+    ex = +e.key; setControls(EXERCISES[ex].start); renderTabs(); render();
+  } else if (e.key === 'r') {
+    setControls(EXERCISES[ex].start); render();
+  }
+});
+
+try {
+  const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
+  if (saved && EXERCISES[saved.ex]) { ex = saved.ex; setControls(saved); }
+  else setControls(EXERCISES[1].start);
+} catch (e) { setControls(EXERCISES[1].start); }
+
+renderTabs();
+render();
+</script>
+</body>
+</html>
