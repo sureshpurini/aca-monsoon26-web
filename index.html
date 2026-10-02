@@ -234,6 +234,13 @@
                         </tr>
                         <tr>
                             <td class="lnum">L14</td>
+                            <td class="ltopic">Roofline Analysis &amp; the Architect's Area Budget
+                                <span class="lblock">the roofline as a bound · intensity per boundary · hierarchical roofline · how reuse scales with capacity · apportioning die area between ALUs and SRAM</span>
+                                <a class="slide-link" href="slides/L14.html" target="_blank" rel="noopener">Slides →</a>
+                                <a class="slide-link" href="worksheets/L14.html" target="_blank" rel="noopener">Interactive worksheet →</a></td>
+                        </tr>
+                        <tr>
+                            <td class="lnum">L15</td>
                             <td class="ltopic">Side-Channel Attacks
                                 <span class="lblock">cache timing channels · Flush+Reload · Prime+Probe · Spectre and Meltdown · mitigations</span></td>
                         </tr>
@@ -249,22 +256,22 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td class="lnum">L15</td>
+                            <td class="lnum">L16</td>
                             <td class="ltopic">Cache Coherence I
                                 <span class="lblock">the coherence problem · snooping protocols · MSI and MESI</span></td>
                         </tr>
                         <tr>
-                            <td class="lnum">L16</td>
+                            <td class="lnum">L17</td>
                             <td class="ltopic">Cache Coherence II
                                 <span class="lblock">directory-based coherence · scalability · false sharing</span></td>
                         </tr>
                         <tr>
-                            <td class="lnum">L17</td>
+                            <td class="lnum">L18</td>
                             <td class="ltopic">Memory Consistency Models I
                                 <span class="lblock">coherence vs consistency · sequential consistency · program order and write atomicity</span></td>
                         </tr>
                         <tr>
-                            <td class="lnum">L18</td>
+                            <td class="lnum">L19</td>
                             <td class="ltopic">Memory Consistency Models II
                                 <span class="lblock">relaxed models (TSO, PSO, RC) · fences · the C++ and Java memory models</span></td>
                         </tr>
@@ -280,27 +287,27 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td class="lnum">L19</td>
+                            <td class="lnum">L20</td>
                             <td class="ltopic">GPU Design I
                                 <span class="lblock">GPU vs CPU design philosophy · the SIMT model · warps and wavefronts · streaming multiprocessors</span></td>
                         </tr>
                         <tr>
-                            <td class="lnum">L20</td>
+                            <td class="lnum">L21</td>
                             <td class="ltopic">GPU Design II
                                 <span class="lblock">the GPU memory hierarchy · threads/blocks/grids · occupancy and divergence</span></td>
                         </tr>
                         <tr>
-                            <td class="lnum">L21</td>
+                            <td class="lnum">L22</td>
                             <td class="ltopic">GPU Design III
                                 <span class="lblock">performance optimization · tensor cores and matrix units · case studies</span></td>
                         </tr>
                         <tr>
-                            <td class="lnum">L22</td>
+                            <td class="lnum">L23</td>
                             <td class="ltopic">NPU / TPU Design I
                                 <span class="lblock">why neural accelerators · systolic arrays · weight-, output- and row-stationary dataflows</span></td>
                         </tr>
                         <tr>
-                            <td class="lnum">L23</td>
+                            <td class="lnum">L24</td>
                             <td class="ltopic">NPU / TPU Design II
                                 <span class="lblock">mapping and scheduling DNN workloads · quantization and reduced precision · the TPU and others</span></td>
                         </tr>
@@ -316,9 +323,9 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td class="lnum">L24</td>
-                            <td class="ltopic">Hierarchical &amp; Energy Roofline Analysis
-                                <span class="lblock">roofline revisited · per-level hierarchical roofline · energy roofline · applying it to GPUs and NPUs</span></td>
+                            <td class="lnum">L25</td>
+                            <td class="ltopic">Energy Roofline, and Roofline on GPUs &amp; NPUs
+                                <span class="lblock">pJ/bit as the real currency of bandwidth · the energy roofline and its ridge point · data movement vs compute energy · applying roofline to GPUs, NPUs and TPUs</span></td>
                         </tr>
                     </tbody>
                 </table>
@@ -332,7 +339,7 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td class="lnum">L25+</td>
+                            <td class="lnum">L26+</td>
                             <td class="ltopic">ISCA / MICRO paper deep-dives
                                 <span class="lblock">Reserved slots — recent architecture papers, read and discussed in class. Papers announced during the semester.</span></td>
                         </tr>
@@ -342,7 +349,7 @@
 
             <p class="footnote">
                 <em>The schedule is tentative and will be refined as the semester progresses.
-                    SIMT is covered as a pre-class video exercise ahead of L19 rather than as a
+                    SIMT is covered as a pre-class video exercise ahead of L20 rather than as a
                     standalone lecture.</em>
             </p>
         </section>
@@ -548,7 +555,7 @@
                 </li>
                 <li>
                     <div class="rtitle">MLPerf: An Industry Standard Benchmark Suite for Machine Learning Performance</div>
-                    <div class="rmeta">Mattson et al., IEEE Micro 40(2), 2020 · benchmarking when the workload is a model; returns in L22–L23</div>
+                    <div class="rmeta">Mattson et al., IEEE Micro 40(2), 2020 · benchmarking when the workload is a model; returns in L23–L24</div>
                     <div class="links">
                         <a href="https://doi.org/10.1109/MM.2020.2974843" target="_blank" rel="noopener">DOI</a>
                     </div>
