@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>L14 Worksheet — Roofline: which level binds, and where the area goes</title>
+<title>L14 Worksheet — Which level binds, and where the area goes</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -32,387 +32,491 @@ th{background:var(--accent);color:#fff;text-align:left;padding:7px 9px;font-weig
 th.r,td.r{text-align:right}
 td{padding:6px 9px;border-bottom:1px solid var(--border)}
 tr.binds td{background:var(--red-f);font-weight:600}
-tr.binds td:first-child::after{content:" ← binds";color:var(--red);font-weight:700;font-size:.8rem}
+tr.binds td:first-child::after{content:" \2190 binds";color:var(--red);font-weight:700;font-size:.8rem}
+tr.cleared td:first-child::after{content:" \2713 cleared";color:var(--green);font-weight:600;font-size:.8rem}
 .ctl{display:flex;align-items:center;gap:12px;margin:9px 0}
-.ctl label{min-width:170px;font-size:.88rem;color:var(--muted)}
+.ctl label{min-width:200px;font-size:.88rem;color:var(--muted)}
 .ctl input[type=range]{flex:1;accent-color:var(--accent)}
-.ctl .val{min-width:108px;text-align:right;font-weight:600}
+.ctl .val{min-width:120px;text-align:right;font-weight:600;font-family:'JetBrains Mono',monospace;font-size:.88rem}
 .btn{border:1px solid var(--border);background:#fff;border-radius:7px;padding:7px 13px;
-     font:inherit;font-size:.86rem;cursor:pointer;color:var(--ink)}
+     cursor:pointer;font:inherit;font-size:.85rem;color:var(--ink)}
 .btn:hover{background:var(--panel)}
 .btn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
 .btn.ghost{color:var(--muted)}
-.btns{display:flex;gap:8px;flex-wrap:wrap;margin:.7em 0}
-.note{border-left:4px solid var(--gold);padding:.55em .9em;color:var(--muted);
-      font-size:.87rem;background:var(--gold-f);border-radius:0 6px 6px 0;margin:1em 0}
-.verdict{border-left:4px solid var(--accent);padding:.6em .95em;background:var(--blue-f);
-         border-radius:0 6px 6px 0;margin:1em 0;font-size:.93rem}
-.verdict.warn{border-left-color:var(--red);background:var(--red-f)}
-.verdict.good{border-left-color:var(--green);background:var(--green-f)}
-.big{font-size:1.5rem;font-weight:700}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin:.6em 0 1.1em}
+.readout{border-left:5px solid var(--red);background:#fdf2f0;padding:12px 18px;margin:14px 0;border-radius:0 7px 7px 0}
+.readout.good{border-left-color:var(--green);background:var(--green-f)}
+.readout .big{font-size:1.28rem;font-weight:700}
+.note{border-left:5px solid var(--gold);background:var(--gold-f);padding:10px 16px;
+      margin:12px 0;font-size:.88rem;color:#5c4708;border-radius:0 7px 7px 0}
+.warn{border-left:5px solid var(--red);background:var(--red-f);padding:10px 16px;
+      margin:12px 0;font-size:.88rem;border-radius:0 7px 7px 0}
+.hint{color:var(--muted);font-size:.87rem}
+details{margin:12px 0;border:1px solid var(--border);border-radius:7px;padding:9px 14px;background:var(--panel)}
+summary{cursor:pointer;font-weight:600;color:var(--accent);font-size:.9rem}
+details[open] summary{margin-bottom:.5em}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:22px}
-@media(max-width:900px){.grid2{grid-template-columns:1fr}.ctl label{min-width:120px}}
+@media(max-width:880px){.grid2{grid-template-columns:1fr}.ctl label{min-width:130px}}
 svg{display:block;max-width:100%;height:auto}
-.q{background:var(--grey-f);border-radius:8px;padding:.8em 1em;margin:1em 0;font-size:.92rem}
-.q b{color:var(--accent)}
-details{margin:.5em 0}summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:.9rem}
-.tag{display:inline-block;font-size:.72rem;padding:1px 7px;border-radius:9px;
-     background:var(--gold-f);color:var(--gold);border:1px solid var(--gold);font-weight:600}
-.foot{color:var(--muted);font-size:.84rem;margin-top:2.5em;border-top:1px solid var(--border);padding-top:1em}
+.spec{font-size:.84rem}
+.spec td{padding:4px 9px}
+.foot{color:var(--muted);font-size:.82rem;margin-top:34px;border-top:1px solid var(--border);padding-top:14px}
+kbd{background:var(--grey-f);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:.82rem}
 </style>
 </head>
 <body>
 <div class="wrap">
 
 <h1>L14 Worksheet — which level binds, and where the area goes</h1>
-<p class="sub">Two panels. The first is the lecture's Act 3 walk, made steppable.
-The second is Act 5's area split, made draggable — including the intensity cap,
-which is the part that changes the answer.</p>
+<p class="sub">Machine <b>T8</b>, the same one as the lecture. Every number here is
+cross-checked against <code>assets/t8.py</code>, which also generated the deck.
+Nothing is stored anywhere; your settings persist only in this browser.</p>
 
-<div class="note">
-<b>CPU-X is a model machine.</b> Everything below is derived from the same
-constants as <code>assets/cpux.py</code>. The entries marked
-<span class="tag">assumed</span> there are modelling choices, not vendor facts.
+<div class="panel alt">
+<h2>T8</h2>
+<table class="spec">
+<tr><th>boundary</th><th class="r">capacity</th><th class="r">bandwidth</th><th class="r">ridge &pi;/&beta;</th><th>cleared when Q &le;</th></tr>
+<tbody id="specBody"></tbody>
+</table>
+<p class="hint" style="margin:.6em 0 0">Peak <b id="specPeak"></b>. 8 cores &middot; 2.0 GHz &middot;
+two 256-bit FMA units per core. A <b>model</b> machine: no benchmark produced these numbers.</p>
 </div>
 
-<!-- ===================== PANEL 1 ===================== -->
+<!-- ============================================================ PANEL 1 -->
 <div class="panel">
-<h2>Panel 1 — The hierarchy walk</h2>
-<p class="sub" style="margin-bottom:1em">Work is fixed at <b>1 GFLOP</b> throughout.
-Only the traffic changes. <code>P &le; min</code> over all levels.</p>
+<h2>1 &middot; The hierarchy walk</h2>
+<p>Work is fixed at <b>1 GFLOP</b> for every step. Only the traffic <i>Q</i>
+crossing each boundary changes. Step through the lecture's six steps, or drive
+the sliders yourself.</p>
 
 <div class="btns" id="presets"></div>
 
-<table id="walkTable">
-  <thead><tr>
-    <th>level</th><th class="r">bandwidth</th><th class="r">traffic (GB)</th>
-    <th class="r">I = W/Q</th><th class="r">bound (GF/s)</th>
-  </tr></thead>
-  <tbody></tbody>
+<div class="grid2">
+<div>
+  <div id="sliders"></div>
+  <div class="ctl" style="margin-top:14px">
+    <button class="btn ghost" id="resetWalk">reset to step 0</button>
+    <span class="hint" id="stepName"></span>
+  </div>
+  <div id="invariant"></div>
+</div>
+<div>
+  <svg id="walkChart" viewBox="0 0 440 240" role="img" aria-label="attainable rate at each boundary"></svg>
+</div>
+</div>
+
+<table>
+<tr><th>level</th><th class="r">Q (GB)</th><th class="r">I = W/Q</th><th class="r">ridge</th><th class="r">&beta;I (GFLOP/s)</th></tr>
+<tbody id="walkBody"></tbody>
 </table>
 
-<div id="walkCtls"></div>
-
-<div class="grid2" style="margin-top:1.2em">
-  <div>
-    <div id="walkVerdict"></div>
-    <div class="q" id="walkQ"></div>
-  </div>
-  <div><svg id="walkChart" viewBox="0 0 440 260" role="img"
-       aria-label="bound per level"></svg></div>
+<div id="walkOut"></div>
+<div id="walkPrompt"></div>
 </div>
 
-<details>
-<summary>Why step 3 buys nothing — open only after you have predicted</summary>
-<p style="font-size:.92rem;color:var(--muted)">Between steps 2 and 3, L2, L3 and
-DRAM traffic all fall. The bound does not move at all, because <b>L1 traffic never
-changed</b>, and 8&nbsp;GB at 8.192&nbsp;TB/s bounds you at 1024&nbsp;GF/s no matter
-what happens outside it. Raising a hit rate reduces traffic at levels
-<em>further out</em> and leaves the level itself untouched. Only step 4 — cutting
-the requests L1 ever <em>sees</em> — moves the L1 ceiling. <b>Hit rate and traffic
-are different levers.</b></p>
-<p style="font-size:.92rem;color:var(--muted)">And note where step 4 lands: 97.5%
-of peak, with <b>DRAM binding again</b>. It never becomes compute-bound. You are
-never "done", only bound somewhere cheaper.</p>
-</details>
-</div>
-
-<!-- ===================== PANEL 2 ===================== -->
-<div class="panel alt">
-<h2>Panel 2 — The area split</h2>
-<p class="sub" style="margin-bottom:1em">
-Area buys the two axes on different curves:
-<code>&pi; = &alpha;·A<sub>alu</sub></code> is <b>linear</b>;
-<code>I = &kappa;&radic;A<sub>mem</sub></code> is a <b>square root</b> — and it
-<b>saturates</b>, because a fixed problem has only so much reuse in it.
-<code>&beta;</code> is held fixed because the memory interface is <b>reserved</b>.</p>
-
-<p class="mono" style="text-align:center;font-size:.95rem">
-P = min( &alpha;(A &minus; m) , &nbsp; r · min(&radic;m, s<sub>cap</sub>) )
-&nbsp;&nbsp;&nbsp; r = &beta;&kappa;/&alpha; &nbsp;&nbsp; A = &alpha; = 1</p>
+<!-- ============================================================ PANEL 2 -->
+<div class="panel">
+<h2>2 &middot; The area split</h2>
+<p>Divide <b>100</b> residual area units between compute and cache.
+Compute peak is <code>&alpha;(A &minus; m)</code>; achievable intensity is
+<code>min(&kappa;&radic;m, I_max)</code>, so the supply limit is
+<code>&beta;&middot;I(m)</code>.</p>
 
 <div class="grid2">
 <div>
-  <div class="ctl"><label>SRAM fraction m/A</label>
-    <input type="range" id="sM" min="0" max="1000" value="382"><span class="val" id="vM"></span></div>
-  <div class="ctl"><label>balance r = &beta;&kappa;/&alpha;</label>
-    <input type="range" id="sR" min="5" max="1000" value="100"><span class="val" id="vR"></span></div>
-  <div class="ctl"><label>intensity cap s<sub>cap</sub></label>
-    <input type="range" id="sC" min="5" max="105" value="105"><span class="val" id="vC"></span></div>
-  <div class="btns">
-    <button class="btn" id="bOpt">jump to the optimum</button>
-    <button class="btn ghost" id="bOff">cap off</button>
+  <div id="areaCtls"></div>
+  <div class="btns" style="margin-top:12px">
+    <button class="btn" id="areaLecture">lecture settings</button>
+    <button class="btn" id="areaUncapped">remove the cap</button>
   </div>
-  <div id="areaVerdict"></div>
 </div>
-<div><svg id="areaChart" viewBox="0 0 460 300" role="img"
-     aria-label="performance against SRAM fraction"></svg></div>
+<div>
+  <svg id="areaChart" viewBox="0 0 440 240" role="img" aria-label="attainable rate against cache area"></svg>
+</div>
 </div>
 
-<div class="q" id="areaQ"></div>
+<div id="areaOut"></div>
 
 <details>
-<summary>The two limits, and the catch in the first one</summary>
-<p style="font-size:.92rem;color:var(--muted)">
-<b>&beta; scarce</b> (r &rarr; 0): <code>m &rarr; A</code> — spend everything on SRAM.
-<b>&beta; plentiful</b> (r large): <code>m &asymp; A&sup2;/r&sup2;</code> — spend it on ALUs.
-One formula, both design philosophies.</p>
-<p style="font-size:.92rem;color:var(--muted)">
-<b>But drag r towards zero and watch the performance readout.</b> It goes to zero
-too, and at &beta; = 0 every split scores zero and there is no unique optimum at
-all. "Spend everything on cache" is a bad prescription dressed as an insight.</p>
-<p style="font-size:.92rem;color:var(--muted)">
-<b>And turn the cap down.</b> Past saturation more SRAM buys nothing, a whole
-<em>range</em> of splits ties, and the optimum stops sitting at compute–memory
-equality. Under scarce bandwidth a <em>finite</em> workload need not push memory
-area toward the whole die.</p>
+<summary>Why the cap changes the conclusion, not just the number</summary>
+<p>Without a cap the optimum sits exactly where the two limits are <b>equal</b>:
+if one is above the other you are paying area for capability you cannot use, so
+you move area to the other side.</p>
+<p>With a cap, intensity stops growing once the working set fits. Beyond that
+point extra cache buys nothing at all, so a whole <b>range</b> of designs score
+identically — equality is no longer required for an optimal split.
+The left endpoint uses the <b>least cache</b> among these tied designs, but all
+still allocate the same total area. Other workloads, power, or a different
+cost objective must decide between them.</p>
+<p class="hint">Try dragging <i>r</i> toward zero. The model says "spend
+everything on SRAM" — and look at what happens to P while it says so.</p>
 </details>
 </div>
 
+<!-- ============================================================ EXERCISES -->
+<div class="panel alt">
+<h2>Exercises</h2>
+<ol>
+<li>Set every level to <b>8 GB</b>. All four intensities are equal — so why do
+the four ceilings differ by 16&times;?</li>
+<li>From step 3, reduce <b>only</b> L2, L3 and DRAM traffic, as far as the
+sliders go. What is the best performance you can reach? Why?</li>
+<li>Starting from step 5, what is the <b>smallest</b> L1 traffic that still
+reaches peak? What does that number correspond to physically?</li>
+<li>Find a setting where <b>two</b> levels bind at once. Is that good or bad
+news for whoever has to optimise it next?</li>
+<li>In panel 2, set <code>I_max = 2.25</code>. Where is the optimum, and is it
+at equality? Now set <code>I_max = 1.125</code>. What changed, and what would
+you build?</li>
+</ol>
+</div>
+
 <p class="foot">
-Advanced Computer Architecture · Monsoon 2026 · IIIT · Suresh Purini —
-companion to Lecture 14. Numbers mirror <code>assets/cpux.py</code>;
-<code>worksheet-report.js --validate</code> checks them against it.
+L14 &middot; Advanced Computer Architecture &middot; Monsoon 2026 &middot; IIIT.
+Instructors: <code>node worksheet-report.js --validate</code> cross-checks every
+number on this page against <code>assets/t8.py</code>.
 </p>
 </div>
 
 <script>
-// ===== MODEL START =====  (worksheet-report.js slices between these two
-// markers and runs the result, so there is exactly ONE implementation of the
-// model and it cannot drift from what students step. Keep both lines verbatim.)
-// ---------------------------------------------------------------- CPU-X
-// Mirrors assets/cpux.py. worksheet-report.js re-derives these and compares,
-// so the two cannot drift silently.
-const CPUX = {
-  cores:32, ghz:2.0, flopCyc:32,
-  bw:{L1:8192, L2:2048, L3:512, DRAM:199.68},   // GB/s
-  get peak(){ return this.cores*this.flopCyc*this.ghz; }   // 2048 GFLOP/s
+// ===== MODEL START =====
+// The single implementation of T8 and both models. worksheet-report.js lifts
+// this block out verbatim and runs it, so the instructor report and the student
+// page can never disagree. Keep the marker lines exactly as they are.
+
+const T8 = {
+  cores: 8, ghz: 2.0, flopsPerCycPerCore: 16,
+  peak: 256,                                    // GFLOP/s
+  bw:   { L1: 1024, L2: 512, L3: 256, DRAM: 64 },   // GB/s
+  cap:  { L1: "32 KiB/core", L2: "256 KiB/core", L3: "16 MiB shared", DRAM: "—" },
+  src:  { L1: "64 load B/cyc/core", L2: "32 B/cyc/core",
+          L3: "128 B/cyc shared", DRAM: "80 GB/s × 80%" }
 };
-const LEVELS=["L1","L2","L3","DRAM"];
-const WORK=1.0;                                  // GFLOP, fixed
+const LEVELS = ["L1", "L2", "L3", "DRAM"];
+const WORK = 1.0;                               // GFLOP, fixed for the whole walk
 
-const WALK=[
-  {name:"1 · baseline",                 t:{L1:8.0,L2:2.0,L3:1.00,DRAM:0.50}},
-  {name:"2 · improve locality",         t:{L1:8.0,L2:1.0,L3:0.50,DRAM:0.15}},
-  {name:"3 · clear outer ceilings",     t:{L1:8.0,L2:0.5,L3:0.25,DRAM:0.10}},
-  {name:"4 · reduce register–L1 traffic",t:{L1:4.0,L2:0.5,L3:0.25,DRAM:0.10}},
+function ridge(l) { return T8.peak / T8.bw[l]; }
+function clearedAt(l) { return WORK / ridge(l); }   // traffic below which l stops binding
+
+const WALK = [
+  { name: "no blocking at all",          t: { L1: 8, L2: 8, L3: 8,   DRAM: 8 } },
+  { name: "block for L3",                t: { L1: 8, L2: 8, L3: 8,   DRAM: 1 } },
+  { name: "block for L2",                t: { L1: 8, L2: 8, L3: 1,   DRAM: 0.25 } },
+  { name: "block for L1",                t: { L1: 8, L2: 2, L3: 1,   DRAM: 0.25 } },
+  { name: "block harder for every cache",t: { L1: 8, L2: 1, L3: 0.5, DRAM: 0.125 } },
+  { name: "register blocking",           t: { L1: 4, L2: 1, L3: 0.5, DRAM: 0.125 } }
 ];
-let traffic={...WALK[0].t}, stepIdx=0;
 
-function analyse(t){
-  const rows=LEVELS.map(l=>{
-    const I=WORK/t[l], bound=CPUX.bw[l]*I;
-    return {level:l, bw:CPUX.bw[l], traffic:t[l], I, bound};
-  });
-  const P=Math.min(CPUX.peak, ...rows.map(r=>r.bound));
-  const binds=rows.filter(r=>Math.abs(r.bound-P)<1e-9).map(r=>r.level);
-  if(Math.abs(CPUX.peak-P)<1e-9) binds.push("compute");
-  return {rows,P,binds};
+const EQ_TOL = 1e-9;
+
+// Per-level intensity and ceiling, then P = min over everything.
+function analyse(Q) {
+  const rows = {};
+  for (const l of LEVELS) {
+    const ai = WORK / Q[l];
+    rows[l] = { q: Q[l], ai: ai, ridge: ridge(l), ceiling: T8.bw[l] * ai,
+                cleared: ai >= ridge(l) - EQ_TOL };
+  }
+  let P = T8.peak;
+  for (const l of LEVELS) P = Math.min(P, rows[l].ceiling);
+  const binds = LEVELS.filter(l => Math.abs(rows[l].ceiling - P) < 1e-9);
+  if (Math.abs(P - T8.peak) < 1e-9) binds.push("compute");
+  return { rows: rows, P: P, binds: binds, frac: P / T8.peak };
 }
 
-function areaP(m,r,cap){ return Math.min(1-m, r*Math.min(Math.sqrt(m), cap)); }
-function areaOptimum(r,cap){
-  let best={p:-1,m:0};
-  for(let i=0;i<=4000;i++){ const m=i/4000, p=areaP(m,r,cap);
-    if(p>best.p+1e-12) best={p,m}; }
-  return best;
+// A level can never pass out more than it was asked for. Violating this is not
+// a worse design, it is an impossible one -- so the page says so.
+function monotonic(Q) {
+  const bad = [];
+  for (let i = 0; i + 1 < LEVELS.length; i++) {
+    const a = LEVELS[i], b = LEVELS[i + 1];
+    if (Q[b] > Q[a] + 1e-12) bad.push(b + " > " + a);
+  }
+  return bad;
 }
-function closedForm(r){ const s=(-r+Math.sqrt(r*r+4))/2; return s*s; }
+
+// ---- the area split -------------------------------------------------------
+const AREA = { A: 100, alpha: 4, kappa: 9 / 32, imax: 1.125 };
+
+function areaIntensity(m, p) {
+  const I = p.kappa * Math.sqrt(Math.max(m, 0));
+  return p.imax === null ? I : Math.min(I, p.imax);
+}
+function areaP(m, p) {
+  if (m < 0 || m > p.A) return 0;
+  return Math.min(p.alpha * (p.A - m), T8.bw.DRAM * areaIntensity(m, p));
+}
+// Uncapped optimum, where alpha(A-m) = beta kappa sqrt(m).
+//   u = sqrt(m),  r = beta kappa / alpha,  u^2 + r u - A = 0
+function closedForm(p) {
+  const r = T8.bw.DRAM * p.kappa / p.alpha;
+  const u = (-r + Math.sqrt(r * r + 4 * p.A)) / 2;
+  return { r: r, m: u * u, P: p.alpha * (p.A - u * u) };
+}
+// With a cap, a RANGE of m is equally good. Return it and the width.
+function plateau(p) {
+  if (p.imax === null) return null;
+  const mSat = Math.pow(p.imax / p.kappa, 2);
+  const Pcap = T8.bw.DRAM * p.imax;
+  if (mSat > p.A || p.alpha * (p.A - mSat) <= Pcap) return null;
+  return { lo: mSat, hi: p.A - Pcap / p.alpha, P: Pcap,
+           width: (p.A - Pcap / p.alpha) - mSat };
+}
+function areaOptimum(p, n) {
+  n = n || 20001;
+  let best = -1, bm = 0;
+  for (let i = 0; i < n; i++) {
+    const m = p.A * i / (n - 1), v = areaP(m, p);
+    if (v > best) { best = v; bm = m; }
+  }
+  return { m: bm, P: best };
+}
 // ===== MODEL END =====
 
-function fmt(x,d=2){return x.toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d});}
+/* ------------------------------------------------------------------ view */
+const $ = s => document.querySelector(s);
+const fmt = (x, d) => Number(x).toFixed(d === undefined ? 2 : d);
+const g = x => (Math.abs(x - Math.round(x)) < 1e-9) ? String(Math.round(x))
+                                                    : String(Number(x.toPrecision(4)));
+const store = {
+  get(k, dflt) { try { const v = localStorage.getItem("l14v2." + k);
+                       return v === null ? dflt : JSON.parse(v); } catch (e) { return dflt; } },
+  set(k, v)    { try { localStorage.setItem("l14v2." + k, JSON.stringify(v)); } catch (e) {} }
+};
 
-function renderWalk(){
-  const {rows,P,binds}=analyse(traffic);
-  document.querySelector("#walkTable tbody").innerHTML = rows.map(r=>`
-    <tr class="${binds.includes(r.level)?'binds':''}">
-      <td><b>${r.level}</b></td>
-      <td class="r">${fmt(r.bw/1000,3)} TB/s</td>
-      <td class="r mono">${fmt(r.traffic,2)}</td>
-      <td class="r mono">${fmt(r.I,4)}</td>
-      <td class="r mono"><b>${fmt(r.bound,1)}</b></td>
-    </tr>`).join("")
-    + `<tr class="${binds.includes('compute')?'binds':''}">
-         <td><b>compute</b></td><td class="r">${fmt(CPUX.peak/1000,3)} TFLOP/s</td>
-         <td class="r">—</td><td class="r">—</td>
-         <td class="r mono"><b>${fmt(CPUX.peak,1)}</b></td></tr>`;
+/* ---- machine spec table */
+(function () {
+  $("#specPeak").textContent = T8.peak + " GFLOP/s";
+  $("#specBody").innerHTML = LEVELS.map(l =>
+    `<tr><td><b>${l}</b></td><td class="r">${T8.cap[l]}</td>
+         <td class="r">${T8.bw[l]} GB/s</td><td class="r"><b>${g(ridge(l))}</b></td>
+         <td>${g(clearedAt(l))} GB <span class="hint">(= W / ridge)</span></td></tr>`).join("");
+})();
 
-  const pct=P/CPUX.peak*100;
-  const base=analyse(WALK[0].t).P;
-  const cls = pct>95 ? "good" : (binds.includes("L1") ? "warn" : "");
-  document.getElementById("walkVerdict").innerHTML=
-    `<div class="verdict ${cls}">
-       <div class="big">${fmt(P,1)} GFLOP/s</div>
-       ${fmt(pct,1)}% of peak &nbsp;·&nbsp; ${fmt(P/base,2)}× over baseline<br>
-       binding: <b>${binds.join(", ")}</b>
-     </div>`;
+/* ---- panel 1 : the walk */
+// Geometric traffic ladder: Q = 16 * 2^(-i/4). Every preset value is an integer
+// index, so the presets and the sliders address exactly the same points.
+const qOf = i => 16 * Math.pow(2, -i / 4);
+const iOf = q => Math.round(4 * Math.log2(16 / q));
+const IMAX = 40;
 
-  let q;
-  if(stepIdx===1) q=`<b>Predict before you click.</b> Step 3 cuts L2, L3 and DRAM
-     traffic again. What happens to the bound?`;
-  else if(stepIdx===2) q=`<b>1.00×.</b> Two ceilings cleared, nothing gained. Which
-     number in the table did <em>not</em> change between steps 2 and 3 — and why does
-     that settle it?`;
-  else if(stepIdx===3) q=`Step 4 cut <b>L1</b> traffic, not a hit rate. Note the
-     result is 97.5% of peak and <b>DRAM binds again</b> — not compute.`;
-  else q=`Drag any traffic slider. <b>Which level binds, and does lowering a
-     non-binding level's traffic ever help?</b>`;
-  document.getElementById("walkQ").innerHTML=q;
+let traffic = store.get("traffic", null) || Object.assign({}, WALK[0].t);
+let activeStep = store.get("step", 0);
 
-  // bar chart
-  const W=440,H=260,pad={l:46,r:14,t:14,b:30}, bw=(W-pad.l-pad.r)/5;
-  const maxV=CPUX.peak*1.12;
-  const bars=[...rows.map(r=>({k:r.level,v:r.bound})),{k:"peak",v:CPUX.peak}];
-  const y=v=>H-pad.b-(v/maxV)*(H-pad.t-pad.b);
-  document.getElementById("walkChart").innerHTML=
-    `<line x1="${pad.l}" y1="${y(CPUX.peak)}" x2="${W-pad.r}" y2="${y(CPUX.peak)}"
-           stroke="var(--green)" stroke-width="1.5" stroke-dasharray="5 4"/>
-     <text x="${pad.l+3}" y="${y(CPUX.peak)-5}" text-anchor="start" font-size="10"
-           fill="var(--green)">peak ${fmt(CPUX.peak,0)}</text>`
-    + bars.map((b,i)=>{
-        const x=pad.l+i*bw+6, h=Math.max(0,H-pad.b-y(b.v));
-        const col = b.k==="peak" ? "var(--faded)"
-                  : (binds.includes(b.k) ? "var(--red)" : "var(--accent)");
-        return `<rect x="${x}" y="${y(b.v)}" width="${bw-12}" height="${h}" fill="${col}" rx="2"/>
-          <text x="${x+(bw-12)/2}" y="${y(b.v)-4}" text-anchor="middle" font-size="9.5"
-                fill="var(--ink)" font-weight="600">${b.v>=1000?fmt(b.v,0):fmt(b.v,0)}</text>
-          <text x="${x+(bw-12)/2}" y="${H-pad.b+13}" text-anchor="middle" font-size="10"
-                fill="var(--muted)">${b.k}</text>`;
-      }).join("")
-    + `<line x1="${pad.l}" y1="${H-pad.b}" x2="${W-pad.r}" y2="${H-pad.b}" stroke="var(--border)"/>
-       <text x="4" y="${pad.t+8}" font-size="9.5" fill="var(--muted)">GFLOP/s</text>`;
-  try{localStorage.setItem("l14.walk",JSON.stringify({traffic,stepIdx}));}catch(e){}
+$("#presets").innerHTML = WALK.map((w, i) =>
+  `<button class="btn" data-step="${i}">${i} &middot; ${w.name}</button>`).join("");
+
+$("#sliders").innerHTML = LEVELS.map(l =>
+  `<div class="ctl">
+     <label for="s-${l}">${l} traffic &nbsp;<span class="hint">${T8.bw[l]} GB/s</span></label>
+     <input type="range" id="s-${l}" min="0" max="${IMAX}" step="1">
+     <span class="val" id="v-${l}"></span>
+   </div>`).join("");
+
+function setTraffic(t, step) {
+  traffic = Object.assign({}, t);
+  activeStep = (step === undefined) ? null : step;
+  store.set("traffic", traffic); store.set("step", activeStep);
+  renderWalk();
 }
 
-// presets + sliders
-document.getElementById("presets").innerHTML=
-  WALK.map((w,i)=>`<button class="btn" data-i="${i}">${w.name}</button>`).join("");
-document.getElementById("presets").addEventListener("click",e=>{
-  const b=e.target.closest("button[data-i]"); if(!b)return;
-  stepIdx=+b.dataset.i; traffic={...WALK[stepIdx].t};
-  [...document.querySelectorAll("#presets .btn")].forEach((x,j)=>x.classList.toggle("on",j===stepIdx));
-  syncSliders(); renderWalk();
-});
-document.getElementById("walkCtls").innerHTML=LEVELS.map(l=>`
-  <div class="ctl"><label>${l} traffic</label>
-    <input type="range" id="t${l}" min="2" max="400" step="1">
-    <span class="val mono" id="v${l}"></span></div>`).join("");
-function sliderToGB(v){return +(v/25).toFixed(2);}          // 0.08 .. 16 GB
-function gbToSlider(g){return Math.round(g*25);}
-LEVELS.forEach(l=>{
-  document.getElementById("t"+l).addEventListener("input",e=>{
-    traffic[l]=sliderToGB(+e.target.value);
-    document.getElementById("v"+l).textContent=fmt(traffic[l],2)+" GB";
-    stepIdx=-1;
-    [...document.querySelectorAll("#presets .btn")].forEach(x=>x.classList.remove("on"));
+LEVELS.forEach(l => {
+  $("#s-" + l).addEventListener("input", e => {
+    traffic[l] = qOf(+e.target.value);
+    activeStep = null;
+    store.set("traffic", traffic); store.set("step", null);
     renderWalk();
   });
 });
-function syncSliders(){
-  LEVELS.forEach(l=>{
-    document.getElementById("t"+l).value=gbToSlider(traffic[l]);
-    document.getElementById("v"+l).textContent=fmt(traffic[l],2)+" GB";
+document.querySelectorAll("#presets .btn").forEach(b =>
+  b.addEventListener("click", () => setTraffic(WALK[+b.dataset.step].t, +b.dataset.step)));
+$("#resetWalk").addEventListener("click", () => setTraffic(WALK[0].t, 0));
+
+function barChart(a) {
+  const W = 440, H = 240, L = 46, R = 12, T = 16, B = 34;
+  const iw = W - L - R, ih = H - T - B;
+  const vals = LEVELS.map(l => a.rows[l].ceiling);
+  const top = Math.max(T8.peak * 1.25, ...vals) * 1.02;
+  const y = v => T + ih * (1 - v / top);
+  const bw = iw / LEVELS.length * 0.56, gap = iw / LEVELS.length;
+  let s = `<rect x="0" y="0" width="${W}" height="${H}" fill="#fff"/>`;
+  [0, T8.peak / 2, T8.peak].forEach(v => {
+    s += `<line x1="${L}" y1="${y(v)}" x2="${W - R}" y2="${y(v)}" stroke="#eef0f6"/>` +
+         `<text x="${L - 6}" y="${y(v) + 4}" font-size="10" fill="#5b5b6b" text-anchor="end">${g(v)}</text>`;
   });
+  s += `<line x1="${L}" y1="${y(T8.peak)}" x2="${W - R}" y2="${y(T8.peak)}" ` +
+       `stroke="#475569" stroke-width="1.6" stroke-dasharray="5 4"/>` +
+       `<text x="${L + 4}" y="${y(T8.peak) - 5}" font-size="10" fill="#475569" text-anchor="start">peak ${T8.peak}</text>`;
+  LEVELS.forEach((l, k) => {
+    const v = a.rows[l].ceiling, bind = a.binds.indexOf(l) >= 0;
+    const x = L + gap * k + (gap - bw) / 2;
+    let yy = Math.max(y(Math.min(v, top)), T);
+    const MINH = 3;                       // keep tiny ceilings visible
+    if (T + ih - yy < MINH) yy = T + ih - MINH;
+    s += `<rect x="${x}" y="${yy}" width="${bw}" height="${T + ih - yy}" ` +
+         `fill="${bind ? '#b03a2e' : '#dce6f7'}" stroke="${bind ? '#b03a2e' : '#2d4a8a'}"/>`;
+    s += `<text x="${x + bw / 2}" y="${yy - 5}" font-size="10.5" text-anchor="middle" ` +
+         `font-weight="${bind ? 700 : 400}" fill="${bind ? '#b03a2e' : '#1a1a2e'}">${fmt(v, 0)}</text>`;
+    s += `<text x="${x + bw / 2}" y="${H - 18}" font-size="11" text-anchor="middle" ` +
+         `font-weight="600" fill="${bind ? '#b03a2e' : '#475569'}">${l}</text>`;
+    s += `<text x="${x + bw / 2}" y="${H - 6}" font-size="9" text-anchor="middle" fill="#5b5b6b">${g(a.rows[l].q)} GB</text>`;
+  });
+  return s;
 }
 
-// ---------------------------------------------------------------- area split
+const PROMPTS = {
+  0: "All four pipes carry the same 8 GB, yet the ceilings differ by 16&times;. What is doing that?",
+  1: "DRAM traffic fell 8&times;, and performance rose 4&times;. Why not 8&times;?",
+  2: "Two levels cleared from one change. Which lever did that, and why does it reach both?",
+  3: "Three levels cleared. Before you touch anything: what would reducing L2, L3 and DRAM traffic further buy you?",
+  4: "Three ceilings just doubled. Performance did not move at all. What is the one number that did not change?",
+  5: "L1 traffic halved and we landed exactly on peak. Why exactly 2&times;, and not some other factor?"
+};
+const REVEALS = {
+  3: "Nothing. L1 is binding at 128 and its traffic is untouched by anything you do further out. Press step 4 and watch.",
+  4: "L1 traffic. It has been 8 GB since step 0. Raising a hit rate reduces traffic at the levels <i>further out</i>; it never reduces traffic at that level itself.",
+  5: "One FMA consumes two fresh 32 B vectors for 8 FLOPs, so zero-reuse intensity is 0.125. The L1 ridge is 0.25 &mdash; exactly 2&times;. The operand ceiling and the L1 roofline are the same statement."
+};
 
-function renderArea(){
-  const m=+document.getElementById("sM").value/1000;
-  const r=+document.getElementById("sR").value/100;
-  const capRaw=+document.getElementById("sC").value/100;
-  const cap=capRaw>=1.05?Infinity:capRaw;
-  const comp=1-m, mem=r*Math.min(Math.sqrt(m),cap), P=Math.min(comp,mem);
-  const opt=areaOptimum(r,cap);
-  const EQ_TOL=0.004;                       // one slider step is 0.001
-  const atEq=Math.abs(comp-mem)<EQ_TOL;
+function renderWalk() {
+  LEVELS.forEach(l => {
+    $("#s-" + l).value = iOf(traffic[l]);
+    $("#v-" + l).textContent = g(traffic[l]) + " GB";
+  });
+  document.querySelectorAll("#presets .btn").forEach(b =>
+    b.classList.toggle("on", +b.dataset.step === activeStep));
 
-  document.getElementById("vM").textContent=fmt(m*100,1)+"%";
-  document.getElementById("vR").textContent="r = "+fmt(r,2);
-  document.getElementById("vC").textContent=cap===Infinity?"none":fmt(cap,2);
+  const a = analyse(traffic);
+  $("#walkBody").innerHTML = LEVELS.map(l => {
+    const r = a.rows[l], bind = a.binds.indexOf(l) >= 0;
+    return `<tr class="${bind ? 'binds' : (r.cleared ? 'cleared' : '')}">
+      <td>${l}</td><td class="r">${g(r.q)}</td><td class="r">${g(r.ai)}</td>
+      <td class="r">${g(r.ridge)}</td><td class="r">${fmt(r.ceiling, 0)}</td></tr>`;
+  }).join("");
+  $("#walkChart").innerHTML = barChart(a);
 
-  // tie plateau: the flat run at the optimum value, when capped
-  let tie=null;
-  if(cap!==Infinity){
-    let lo=null,hi=null;
-    for(let i=0;i<=4000;i++){const mm=i/4000;
-      if(Math.abs(areaP(mm,r,cap)-opt.p)<1e-9){ if(lo===null)lo=mm; hi=mm; }}
-    if(lo!==null&&hi-lo>0.004) tie=[lo,hi];
-  }
-
-  document.getElementById("areaVerdict").innerHTML=
-    `<div class="verdict ${P<0.1?'warn':(atEq?'':'good')}">
-       <div class="big">P = ${fmt(P,4)}</div>
-       compute term ${fmt(comp,4)} &nbsp;·&nbsp; memory term ${fmt(mem,4)}<br>
-       binding: <b>${atEq?'both — at equality':(comp<mem?'compute (ALU area)':'memory (intensity)')}</b><br>
-       optimum here: <b>${fmt(opt.m*100,1)}% SRAM</b> giving ${fmt(opt.p,4)}
-       ${tie?`<br><span style="color:var(--red)"><b>every split from ${fmt(tie[0]*100,0)}% to
-         ${fmt(tie[1]*100,0)}% ties</b> — the optimum is NOT at equality</span>`:""}
-       ${P<0.1?`<br><span style="color:var(--red)"><b>note P itself is collapsing</b> —
-         "spend everything on SRAM" wins a race to nowhere</span>`:""}
+  const atPeak = a.binds.indexOf("compute") >= 0;
+  const base = analyse(WALK[0].t).P;
+  $("#walkOut").innerHTML =
+    `<div class="readout ${atPeak ? 'good' : ''}">
+       <span class="big">P = ${fmt(a.P, 0)} GFLOP/s</span>
+       &nbsp;&mdash;&nbsp; ${fmt(a.frac * 100, 1)}% of peak,
+       <b>${a.binds.join(" + ")}</b> ${a.binds.length > 1 ? "bind" : "binds"}.
+       <span class="hint">&nbsp;${fmt(a.P / base, 2)}&times; the no-blocking baseline.</span>
      </div>`;
 
-  document.getElementById("areaQ").innerHTML = cap===Infinity
-    ? `<b>Uncapped.</b> The optimum sits exactly where the two terms cross — which is
-       to say, <em>where the workload sits on the ridge point</em>. Closed form:
-       m* = ${fmt(closedForm(r)*100,1)}%. Now drag the cap down.`
-    : `<b>Capped at s<sub>cap</sub> = ${fmt(cap,2)}.</b> Past saturation more SRAM buys
-       nothing. Does the optimum still sit where the two terms are equal?`;
+  const bad = monotonic(traffic);
+  $("#invariant").innerHTML = bad.length
+    ? `<div class="warn"><b>Impossible configuration:</b> ${bad.join(", ")}.
+       A level cannot pass outward more traffic than it was asked for, so this
+       is not a worse design &mdash; it is not a design at all.</div>` : "";
 
-  // plot
-  const W=460,H=300,pad={l:52,r:16,t:16,b:38};
-  const X=v=>pad.l+v*(W-pad.l-pad.r), Y=v=>H-pad.b-v*(H-pad.t-pad.b);
-  let dUn="",dCap="";
-  for(let i=0;i<=400;i++){const mm=i/400;
-    dUn +=(i?"L":"M")+X(mm)+","+Y(areaP(mm,r,Infinity));
-    dCap+=(i?"L":"M")+X(mm)+","+Y(areaP(mm,r,cap));
+  let p = "";
+  if (activeStep !== null && PROMPTS[activeStep]) {
+    p = `<div class="note"><b>Step ${activeStep}.</b> ${PROMPTS[activeStep]}</div>`;
+    if (REVEALS[activeStep])
+      p += `<details><summary>Commit to an answer first, then open this</summary>
+            <p>${REVEALS[activeStep]}</p></details>`;
   }
-  document.getElementById("areaChart").innerHTML=
-    `<line x1="${pad.l}" y1="${H-pad.b}" x2="${W-pad.r}" y2="${H-pad.b}" stroke="var(--border)"/>
-     <line x1="${pad.l}" y1="${pad.t}" x2="${pad.l}" y2="${H-pad.b}" stroke="var(--border)"/>
-     ${tie?`<rect x="${X(tie[0])}" y="${Y(opt.p)-3}" width="${X(tie[1])-X(tie[0])}" height="6"
-              fill="var(--red)" opacity=".25"/>`:""}
-     ${cap!==Infinity?`<path d="${dUn}" fill="none" stroke="var(--faded)" stroke-width="1.6"
-              stroke-dasharray="5 4"/>`:""}
-     <path d="${dCap}" fill="none" stroke="${cap===Infinity?'var(--accent)':'var(--gold)'}" stroke-width="2.4"/>
-     <circle cx="${X(opt.m)}" cy="${Y(opt.p)}" r="5"
-             fill="${cap===Infinity?'var(--accent)':'var(--gold)'}"/>
-     <line x1="${X(m)}" y1="${pad.t}" x2="${X(m)}" y2="${H-pad.b}"
-           stroke="var(--red)" stroke-width="1.4"/>
-     <circle cx="${X(m)}" cy="${Y(P)}" r="4.5" fill="var(--red)"/>
-     <text x="${pad.l-6}" y="${Y(1)+4}" text-anchor="end" font-size="10" fill="var(--muted)">1.0</text>
-     <text x="${pad.l-6}" y="${Y(0)+4}" text-anchor="end" font-size="10" fill="var(--muted)">0</text>
-     <text x="${X(0)}" y="${H-pad.b+15}" text-anchor="middle" font-size="10" fill="var(--muted)">0%</text>
-     <text x="${X(1)}" y="${H-pad.b+15}" text-anchor="middle" font-size="10" fill="var(--muted)">100%</text>
-     <text x="${(pad.l+W-pad.r)/2}" y="${H-6}" text-anchor="middle" font-size="10.5"
-           fill="var(--muted)">fraction of area given to SRAM</text>
-     <text x="8" y="${pad.t+8}" font-size="10.5" fill="var(--muted)">P</text>`;
-  try{localStorage.setItem("l14.area",JSON.stringify({m,r,capRaw}));}catch(e){}
+  $("#walkPrompt").innerHTML = p;
+  $("#stepName").textContent = activeStep === null
+    ? "your own setting" : "step " + activeStep + " — " + WALK[activeStep].name;
 }
-["sM","sR","sC"].forEach(id=>document.getElementById(id).addEventListener("input",renderArea));
-document.getElementById("bOpt").addEventListener("click",()=>{
-  const r=+document.getElementById("sR").value/100;
-  const capRaw=+document.getElementById("sC").value/100;
-  const o=areaOptimum(r, capRaw>=1.05?Infinity:capRaw);
-  document.getElementById("sM").value=Math.round(o.m*1000); renderArea();
-});
-document.getElementById("bOff").addEventListener("click",()=>{
-  document.getElementById("sC").value=105; renderArea();
-});
 
-// restore
-try{
-  const w=JSON.parse(localStorage.getItem("l14.walk")||"null");
-  if(w&&w.traffic){traffic=w.traffic;stepIdx=w.stepIdx??-1;
-    if(stepIdx>=0)[...document.querySelectorAll("#presets .btn")]
-      .forEach((x,j)=>x.classList.toggle("on",j===stepIdx));}
-  const a=JSON.parse(localStorage.getItem("l14.area")||"null");
-  if(a){document.getElementById("sM").value=Math.round(a.m*1000);
-        document.getElementById("sR").value=Math.round(a.r*100);
-        document.getElementById("sC").value=Math.round(a.capRaw*100);}
-}catch(e){}
-if(stepIdx===0)[...document.querySelectorAll("#presets .btn")][0].classList.add("on");
-syncSliders(); renderWalk(); renderArea();
+/* ---- panel 2 : the area split */
+let ap = { A: AREA.A, alpha: AREA.alpha, kappa: AREA.kappa, imax: AREA.imax };
+let mSel = store.get("m", 64);
+ap.kappa = store.get("kappa", AREA.kappa);
+ap.imax  = store.get("imax",  AREA.imax);
+
+$("#areaCtls").innerHTML = `
+  <div class="ctl"><label for="s-m">cache area m</label>
+    <input type="range" id="s-m" min="0" max="100" step="0.5"><span class="val" id="v-m"></span></div>
+  <div class="ctl"><label for="s-r">r = &beta;&kappa;/&alpha;</label>
+    <input type="range" id="s-r" min="0.2" max="20" step="0.1"><span class="val" id="v-r"></span></div>
+  <div class="ctl"><label for="s-c">I_max (intensity cap)</label>
+    <input type="range" id="s-c" min="0.25" max="4" step="0.0625"><span class="val" id="v-c"></span></div>`;
+
+const rOf = () => T8.bw.DRAM * ap.kappa / ap.alpha;
+$("#s-m").addEventListener("input", e => { mSel = +e.target.value; store.set("m", mSel); renderArea(); });
+$("#s-r").addEventListener("input", e => {
+  ap.kappa = +e.target.value * ap.alpha / T8.bw.DRAM; store.set("kappa", ap.kappa); renderArea(); });
+$("#s-c").addEventListener("input", e => {
+  ap.imax = +e.target.value; store.set("imax", ap.imax); renderArea(); });
+$("#areaLecture").addEventListener("click", () => {
+  ap.kappa = AREA.kappa; ap.imax = AREA.imax; mSel = 64;
+  store.set("kappa", ap.kappa); store.set("imax", ap.imax); store.set("m", mSel); renderArea(); });
+$("#areaUncapped").addEventListener("click", () => {
+  ap.imax = 4; store.set("imax", ap.imax); renderArea(); });
+
+function areaChart() {
+  const W = 440, H = 240, L = 46, R = 14, T = 14, B = 32;
+  const iw = W - L - R, ih = H - T - B;
+  const top = ap.alpha * ap.A * 1.05;
+  const X = m => L + iw * m / ap.A, Y = v => T + ih * (1 - v / top);
+  let s = `<rect x="0" y="0" width="${W}" height="${H}" fill="#fff"/>`;
+  [0, 100, 200, 300, 400].forEach(v => {
+    if (v > top) return;
+    s += `<line x1="${L}" y1="${Y(v)}" x2="${W - R}" y2="${Y(v)}" stroke="#eef0f6"/>` +
+         `<text x="${L - 6}" y="${Y(v) + 4}" font-size="10" fill="#5b5b6b" text-anchor="end">${v}</text>`;
+  });
+  const pl = plateau(ap);
+  if (pl) s += `<rect x="${X(pl.lo)}" y="${Y(pl.P)}" width="${X(pl.hi) - X(pl.lo)}" ` +
+               `height="${Y(0) - Y(pl.P)}" fill="#fff3d6" stroke="#b8860b" stroke-dasharray="4 3"/>`;
+  const pts = n => { const o = []; for (let i = 0; i <= n; i++) o.push(ap.A * i / n); return o; };
+  const path = f => pts(240).map((m, i) => (i ? "L" : "M") + X(m).toFixed(1) + " " + Y(f(m)).toFixed(1)).join(" ");
+  s += `<path d="${path(m => ap.alpha * (ap.A - m))}" fill="none" stroke="#2d4a8a" stroke-width="1.8"/>`;
+  s += `<path d="${path(m => T8.bw.DRAM * areaIntensity(m, ap))}" fill="none" stroke="#0f766e" stroke-width="1.8"/>`;
+  s += `<path d="${path(m => areaP(m, ap))}" fill="none" stroke="#b03a2e" stroke-width="3"/>`;
+  const opt = areaOptimum(ap);
+  s += `<circle cx="${X(opt.m)}" cy="${Y(opt.P)}" r="5" fill="#b03a2e" stroke="#fff" stroke-width="1.6"/>`;
+  s += `<line x1="${X(mSel)}" y1="${T}" x2="${X(mSel)}" y2="${T + ih}" stroke="#5b4b8a" stroke-dasharray="3 3"/>`;
+  s += `<circle cx="${X(mSel)}" cy="${Y(areaP(mSel, ap))}" r="4.5" fill="#5b4b8a" stroke="#fff" stroke-width="1.5"/>`;
+  [0, 25, 50, 75, 100].forEach(m =>
+    s += `<text x="${X(m)}" y="${H - 8}" font-size="10" fill="#5b5b6b" text-anchor="middle">${m}</text>`);
+  s += `<text x="${(L + W - R) / 2}" y="${H + 0}" font-size="10" fill="#5b5b6b" text-anchor="middle"></text>`;
+  s += `<text x="${L + 10}" y="${T + 26}" font-size="10" fill="#2d4a8a">compute</text>`;
+  s += `<text x="${W - R - 6}" y="${Y(T8.bw.DRAM * areaIntensity(ap.A, ap)) - 7}" font-size="10" fill="#0f766e" text-anchor="end">supply</text>`;
+  return s;
+}
+
+function renderArea() {
+  $("#s-m").value = mSel; $("#v-m").textContent = fmt(mSel, 1);
+  $("#s-r").value = rOf(); $("#v-r").textContent = fmt(rOf(), 2);
+  $("#s-c").value = ap.imax; $("#v-c").textContent = fmt(ap.imax, 3);
+  $("#areaChart").innerHTML = areaChart();
+
+  const opt = areaOptimum(ap), cf = closedForm(ap), pl = plateau(ap);
+  const compute = ap.alpha * (ap.A - opt.m), supply = T8.bw.DRAM * areaIntensity(opt.m, ap);
+  const atEq = Math.abs(compute - supply) < Math.max(1e-6, 1e-3 * Math.max(compute, supply));
+
+  let html = `<div class="readout ${pl ? '' : 'good'}">
+      <span class="big">optimum: m = ${fmt(opt.m, 1)}, P = ${fmt(opt.P, 1)} GFLOP/s</span><br>
+      at that point compute = ${fmt(compute, 1)}, supply = ${fmt(supply, 1)} &mdash;
+      <b>${atEq ? "the two limits are equal" : "the limits are NOT equal"}</b>.
+      <span class="hint">&nbsp;Your setting m = ${fmt(mSel, 1)} gives P = ${fmt(areaP(mSel, ap), 1)}.</span>
+    </div>`;
+  if (pl) {
+    html += `<div class="note"><b>Tie plateau.</b> Every m from <b>${fmt(pl.lo, 1)}</b> to
+      <b>${fmt(pl.hi, 1)}</b> gives the same P = ${fmt(pl.P, 1)} &mdash;
+      <b>${fmt(pl.width, 1)} area units</b> the model cannot tell apart.
+      The least-cache choice is m = ${fmt(pl.lo, 1)}. All these choices still
+      allocate the same total area; use other workloads, power or cost to
+      break the tie.</div>`;
+  } else {
+    html += `<div class="note">No cap is binding, so the uncapped closed form applies:
+      r = ${fmt(cf.r, 2)}, m* = ${fmt(cf.m, 1)}, P* = ${fmt(cf.P, 1)}.</div>`;
+  }
+  if (opt.P < 60) {
+    html += `<div class="warn"><b>Read the optimum with its value.</b> The split may be
+      "optimal", but P itself has collapsed to ${fmt(opt.P, 1)} GFLOP/s. Winning a
+      race to nowhere is still losing.</div>`;
+  }
+  $("#areaOut").innerHTML = html;
+}
+
+renderWalk();
+renderArea();
 </script>
 </body>
 </html>
