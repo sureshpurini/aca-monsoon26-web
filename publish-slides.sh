@@ -40,6 +40,8 @@ DST="$WEB_DIR/slides"
 # L11 has two folders in the course repo. `L11-alternate` is the published cut
 # (one machine, one loop, one number from the first schedule to the last);
 # `L11-vliw-software-pipelining` is the earlier version and is kept, not served.
+# Likewise L15: `L15-alternate` (password timing -> Meltdown -> KPTI) is the
+# published cut; `L15-side-channels` is kept, not served.
 DECKS=(
   "L1-digital-circuits-bsv:L3"
   "L2-tiny-processor:L4"
@@ -51,6 +53,7 @@ DECKS=(
   "L11-alternate:L11"
   "L12-npu-aie-iron:L12"
   "L14-roofline-v2:L14"
+  "L15-alternate:L15"
 )
 
 # Hand-written interactive worksheets: a single self-contained HTML checked into
